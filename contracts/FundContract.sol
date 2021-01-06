@@ -179,7 +179,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * @param addr address to send
      */
     function _withdraw(uint256 amount, address addr) internal {
-        require(endTime <= now, 'withdraw available after `endTime` expired');
+        
         uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount, 'Amount exceeds allowed balance');
         
