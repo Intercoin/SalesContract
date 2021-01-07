@@ -115,7 +115,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         // usd -> itr
         uint256 amount2send = (msg.value).
                                         mul(uint256(latestPrice)).
-                                        div(getExchangePriceUSD())
+                                        div(getTokenPrice())
                                         ;
                                         // pass mul(1e8).div(1e8) 
                                         // it's multipliers for latestPrice and exchangeRateUSD(1e8*1e8)
@@ -149,20 +149,18 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * @param addr address to send
      */
     function claim(uint256 amount, address addr) public onlyOwner {
-
-        require(address(this).balance >= amount, 'Amount exceeds allowed balance');
-        require(addr != address(0), 'address can not be empty');
+        _claim(amount, addr);
         
-        address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
-        bool success = addr1.send(amount);
-        require(success == true, 'Transfer ether was failed'); 
     }
     
+    function claim() public onlyOwner {
+        _claim(address(this).balance, _msgSender());
+    }
     
     /**
      * get exchange rate USD -> sellingToken
      */
-    function getExchangePriceUSD() public view returns (uint256 price) {
+    function getTokenPrice() public view returns (uint256 price) {
         uint256 ts = timestamps[0];
         price = prices[0];
         for (uint256 i = 0; i < timestamps.length; i++) {
@@ -174,12 +172,23 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         
     }
     
+    function _claim(uint256 amount, address addr) internal {
+        
+        require(address(this).balance >= amount, 'Amount exceeds allowed balance');
+        require(addr != address(0), 'address can not be empty');
+        
+        address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
+        bool success = addr1.send(amount);
+        require(success == true, 'Transfer ether was failed'); 
+    }
+    
     /**
      * @param amount amount of tokens
      * @param addr address to send
      */
     function _withdraw(uint256 amount, address addr) internal {
         
+        require(amount>0, 'Amount can not be zero');
         uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount, 'Amount exceeds allowed balance');
         

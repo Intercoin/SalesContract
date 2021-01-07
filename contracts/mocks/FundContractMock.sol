@@ -27,5 +27,5 @@ contract FundContractMock is FundContract {
     ) public FundContract(_sellingToken, _chainLink, _timestamps,_prices,_endTime) {
         
     }
-    
+   
 }
