@@ -21,7 +21,30 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     uint256 internal endTime;
     
     uint256 internal maxGasPrice;
+    
+    uint256 internal ethDenom;
 
+    struct Participant {
+        string groupName;
+        uint256 totalAmount;
+        uint256 contributed;
+        bool exists;
+    }
+    
+    struct Group {
+        string name;
+        uint256 totalAmount;
+        address[] participants;
+        bool exists;
+    }
+    
+    mapping(string => Group) groups;
+    mapping(address => Participant) participants;
+    
+    
+    uint256[] thresholds; // count in usd (mul by 1e8)
+    uint256[] bonuses;// percents mul by 100
+    
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
         _;
@@ -42,7 +65,9 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         address _chainLink, 
         uint256[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime
+        uint256 _endTime,
+        uint256[] memory _thresholds,
+        uint256[] memory _bonuses
     ) 
         public 
     {
@@ -54,11 +79,16 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(_chainLink != address(0), 'token can not be zero');
         
         maxGasPrice = 1*10**18; 
+        
+        ethDenom = 1*10**18;
+        
         sellingToken = _sellingToken;
         chainLink = _chainLink;
         timestamps = _timestamps;
         prices = _prices;
         endTime = _endTime;
+        thresholds = _thresholds;
+        bonuses = _bonuses;
         
         
         priceFeed = AggregatorV3Interface(_chainLink);
@@ -111,21 +141,26 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         int256 latestPrice = getLatestPrice(); // mul 1e8
         require(latestPrice > 0, 'latestPrice need to be more than zero');
         //msg.value
+        uint256 tokenPrice = getTokenPrice();
         
         // usd -> itr
-        uint256 amount2send = (msg.value).
-                                        mul(uint256(latestPrice)).
-                                        div(getTokenPrice())
-                                        ;
-                                        // pass mul(1e8).div(1e8) 
-                                        // it's multipliers for latestPrice and exchangeRateUSD(1e8*1e8)
-                                        
+        uint256 convertedPrice = (msg.value).mul(uint256(latestPrice));
+        uint256 amount2send = convertedPrice.div(tokenPrice);
+
         require(amount2send > 0 , 'can not calculate amount of tokens');                                       
         uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, 'Amount exceeds allowed balance');
         
         bool success = IERC20(sellingToken).transfer(_msgSender(), amount2send);
         require(success == true, 'Transfer tokens were failed'); 
+        
+        // bonus calculation
+        _addBonus(
+            _msgSender(), 
+            convertedPrice,
+            tokenPrice
+        );
+        
     }
 
     /**
@@ -134,14 +169,14 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * @param addr address to send
      */
     function withdraw(uint256 amount, address addr) public onlyOwner {
-        _withdraw(amount, addr);
+        _sendTokens(amount, addr);
     }
     
     /**
      * withdaw all tokens to owner
      */
-    function withdraw() public onlyOwner {
-        _withdraw(IERC20(sellingToken).balanceOf(address(this)), _msgSender());
+    function withdrawAll() public onlyOwner {
+        _sendTokens(IERC20(sellingToken).balanceOf(address(this)), _msgSender());
     }
     
     /**
@@ -153,7 +188,20 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         
     }
     
-    function claim() public onlyOwner {
+    /**
+     * @param addresses array of addresses which need to link with group
+     * @param groupName group name. if does not exists it will be created
+     */
+    function setGroup(address[] memory addresses, string memory groupName) public onlyOwner {
+        for (uint256 i = 0; i < addresses.length; i++) {
+            _setGroup(addresses[i], groupName);
+        }
+    }
+    
+    /**
+     * withdaw all eth to owner(sender)
+     */
+    function claimAll() public onlyOwner {
         _claim(address(this).balance, _msgSender());
     }
     
@@ -172,6 +220,26 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         
     }
     
+    /**
+     * @param groupName group name
+     */
+    function getGroupBonus(string memory groupName) public view returns(uint256 bonus) {
+        bonus = 0;
+        
+        if (groups[groupName].exists == true) {
+            uint256 groupTotalAmount = groups[groupName].totalAmount.div(ethDenom);
+            for (uint256 i = 0; i < thresholds.length; i++) {
+                if (groupTotalAmount >= thresholds[i]) {
+                    bonus = bonuses[i];
+                }
+            }
+        }
+    }
+    
+    /**
+     * @param amount amount of eth
+     * @param addr address to send
+     */
     function _claim(uint256 amount, address addr) internal {
         
         require(address(this).balance >= amount, 'Amount exceeds allowed balance');
@@ -186,17 +254,82 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * @param amount amount of tokens
      * @param addr address to send
      */
-    function _withdraw(uint256 amount, address addr) internal {
+    function _sendTokens(uint256 amount, address addr) internal {
         
         require(amount>0, 'Amount can not be zero');
+        require(addr != address(0), 'address can not be empty');
+        
         uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount, 'Amount exceeds allowed balance');
-        
-        require(addr != address(0), 'address can not be empty');
         
         bool success = IERC20(sellingToken).transfer(addr, amount);
         require(success == true, 'Transfer tokens were failed'); 
     }
     
+    /**
+     * @param addr address which need to link with group
+     * @param groupName group name. if does not exists it will be created
+     */
+    function _setGroup(address addr, string memory groupName) internal {
+        require(addr != address(0), 'address can not be empty');
+        require(bytes(groupName).length != 0, 'groupName can not be empty');
+        if (participants[addr].exists == false) {
+            participants[addr].exists = true;
+            participants[addr].contributed = 0;
+            participants[addr].groupName = groupName;
+            
+            if (groups[groupName].exists == false) {
+                groups[groupName].exists = true;
+                groups[groupName].name = groupName;
+                groups[groupName].totalAmount = 0;
+            } 
+            
+            groups[groupName].participants.push(addr);
+        }
+    }
+    
+    /**
+     * calculate user bonus tokens and send it to him
+     * @param addr Address of participant
+     * @param convertedPrice eth.mul(latestPrice) i.e. equivalent in usd (multiplied by ie8(latestPrice) and 1e18(eth denom))
+     * @param tokenPrice price ratio usd -> token
+     */
+    function _addBonus(
+        address addr, 
+        uint256 convertedPrice,
+        uint256 tokenPrice
+    ) 
+        internal 
+    {
+        if (participants[addr].exists == true) {
+            
+            string memory groupName = participants[addr].groupName;
+            
+            groups[groupName].totalAmount = groups[groupName].totalAmount.add(convertedPrice);
+            participants[addr].totalAmount = participants[addr].totalAmount.add(convertedPrice);
+            
+            //// send tokens
+            uint256 groupBonus = getGroupBonus(groupName);
+            address participantAddr;
+            uint256 bonus2Send;
+            uint256 participantTotalBonusTokens;
+            for (uint256 i = 0; i < groups[groupName].participants.length; i++) {
+                participantAddr = groups[groupName].participants[i];
+
+                participantTotalBonusTokens = participants[participantAddr].totalAmount.
+                                                                                mul(groupBonus).
+                                                                                div(tokenPrice).
+                                                                                div(1e2);
+
+                bonus2Send = participantTotalBonusTokens.sub(participants[participantAddr].contributed);
+                if (bonus2Send > 0) {
+                    participants[participantAddr].contributed = participantTotalBonusTokens;
+                    
+                    _sendTokens(bonus2Send, participantAddr);
+                }
+            }
+               
+        }
+    }
     
 }

@@ -23,9 +23,17 @@ contract FundContractMock is FundContract {
         address _chainLink, 
         uint256[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime
-    ) public FundContract(_sellingToken, _chainLink, _timestamps,_prices,_endTime) {
+        uint256 _endTime,
+        uint256[] memory _thresholds,
+        uint256[] memory _bonuses
+    ) public FundContract(_sellingToken, _chainLink, _timestamps,_prices,_endTime, _thresholds, _bonuses) {
         
     }
-   
+    
+    function getGroupData(string memory groupName) public view returns(Group memory) {
+        return groups[groupName];
+    }
+    function getParticipantData(address addr) public view returns(Participant memory) {
+        return participants[addr];
+    }
 }

@@ -15,11 +15,12 @@ contract Aggregator {
         )
     {
         roundId = 0;
-        answer = 100e8;
+        //answer = 100e8;
+        
+        answer = 123429e6; //1234,29 * 1e8
         startedAt = 0;
         updatedAt = 0;
         answeredInRound = 0;
     }
-
 
 }
