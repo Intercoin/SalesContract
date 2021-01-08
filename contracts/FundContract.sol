@@ -212,7 +212,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256 ts = timestamps[0];
         price = prices[0];
         for (uint256 i = 0; i < timestamps.length; i++) {
-            if (now >= timestamps[i]) {
+            if (now >= timestamps[i] && timestamps[i]>=ts) {
                 ts = timestamps[i];
                 price = prices[i];
             }
@@ -228,8 +228,10 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         
         if (groups[groupName].exists == true) {
             uint256 groupTotalAmount = groups[groupName].totalAmount.div(ethDenom);
+            uint256 tmp = 0;
             for (uint256 i = 0; i < thresholds.length; i++) {
-                if (groupTotalAmount >= thresholds[i]) {
+                if (groupTotalAmount >= thresholds[i] && thresholds[i] >= tmp) {
+                    tmp = thresholds[i];
                     bonus = bonuses[i];
                 }
             }

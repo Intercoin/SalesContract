@@ -37,6 +37,7 @@ contract('IntercoinContract', (accounts) => {
     const lastTime = 1630454400;
     const thresholds = [10000_00000000, 25000_00000000, 50000_00000000];// count in usd (mul by 1e8)
     const bonuses = [10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
+    
       
     const amountETHSendToContract = 10*10**18; // 10ETH
     
