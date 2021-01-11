@@ -171,7 +171,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
 
     /**
-     * withdaw some tokens to address
+     * withdraw some tokens to address
      * @param amount amount of tokens
      * @param addr address to send
      */

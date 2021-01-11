@@ -60,22 +60,22 @@ once installed will be use methods to exchange
     <tr>
 		<td><a href="#withdraw">withdraw</a></td>
 		<td>owner</td>
-		<td>withdaw some tokens to address</td>
+		<td>withdraw some tokens to address</td>
 	</tr>
 	<tr>
 		<td><a href="#withdrawall">withdrawAll</a></td>
 		<td>owner</td>
-		<td>withdaw all tokens to owner(sender)</td>
+		<td>withdraw all tokens to owner(sender)</td>
 	</tr>
 	<tr>
 		<td><a href="#claim">claim</a></td>
 		<td>owner</td>
-		<td>withdaw some eth to address</td>
+		<td>claim some eth to address</td>
 	</tr>
 	<tr>
 		<td><a href="#claimall">claimAll</a></td>
 		<td>owner</td>
-		<td>withdaw all eth to owner(sender)</td>
+		<td>claim all eth to owner(sender)</td>
 	</tr>
 	<tr>
 		<td><a href="#setgroup">setGroup</a></td>
@@ -116,7 +116,7 @@ addr|address|address to send
 
 #### withdrawAll
 
-withdaw all tokens to owner
+withdraw all tokens to owner
 
 #### claim
 Params:
