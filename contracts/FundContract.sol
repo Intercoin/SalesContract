@@ -17,7 +17,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     address internal sellingToken;
     address internal chainLink;
     uint256[] internal timestamps;
-    uint256[]  internal prices;
+    uint256[] internal prices;
     uint256 internal endTime;
     
     uint256 internal maxGasPrice;
@@ -56,9 +56,11 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * Address: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
      * @param _sellingToken address of ITR token
      * @param _chainLink aggregator's address
-     * @param _timestamps array of times
+     * @param _timestamps array of timestamps
      * @param _prices price exchange
-     * @param _endTime aftert this time withdraw should be enable and exchange stop
+     * @param _endTime after this time exchange stop
+     * @param _thresholds thresholds
+     * @param _bonuses bonuses
      */
     constructor(
         address _sellingToken,
@@ -116,12 +118,15 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     function getConfig(
     ) 
         public 
-        view returns ( 
+        view 
+        returns ( 
             address _sellingToken,
             address _chainLink, 
             uint256[] memory _timestamps,
             uint256[] memory _prices,
-            uint256 _endTime
+            uint256 _endTime,
+            uint256[] memory _thresholds,
+            uint256[] memory _bonuses
         ) 
     {
         _sellingToken = sellingToken;
@@ -129,6 +134,8 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         _timestamps = timestamps;
         _prices = prices;
         _endTime = endTime;
+        _thresholds = thresholds;
+        _bonuses = bonuses;
     }
     
     /**
@@ -173,7 +180,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
     
     /**
-     * withdaw all tokens to owner
+     * withdraw all tokens to owner
      */
     function withdrawAll() public onlyOwner {
         _sendTokens(IERC20(sellingToken).balanceOf(address(this)), _msgSender());
@@ -199,7 +206,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
     }
     
     /**
-     * withdaw all eth to owner(sender)
+     * claim all eth to owner(sender)
      */
     function claimAll() public onlyOwner {
         _claim(address(this).balance, _msgSender());
