@@ -14,7 +14,7 @@ _sellingToken|address|address of <a target="_blank" href="https://etherscan.io/t
 _chainLink|address| aggregator's address (<a target="_blank" href="https://docs.chain.link/docs/ethereum-addresses">list</a>) | 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
 _timestamps|uint256[] | array of timestamps(gmt) | [1609459200, 1614556800, 1619827200]
 _prices|uint256[]| array prices exchange in usd (mul by 1e8) | [12000000, 15000000, 18000000]
-_endTime|uint256| after this time exchange stop | 1630454400
+_endTime|uint256| after this time exchange will be stopped | 1630454400
 _thresholds|uint256[]| after group reach threshold (mul by 1e8) of usd, every members will get bonuses | [1000000000000, 2500000000000, 5000000000000]
 _bonuses|uint256[]| bonuses in percents (mul by 100) i.e. 10%,20%,30%   or 0.1,0.2,0.5  | [10, 20, 50]
 
@@ -139,7 +139,292 @@ groupName|string| group name.  if group doesn't exists it will be created
 
 # Example
 
-* deploy contract
+* deploy contract (through <a target="_blank" href="https://github.com/Intercoin/IntercoinContract">intercoin factory mechanism</a> )
 * transfer to contract some `sellingToken`
 * now any user which send eth to contract will be able to get `sellingToken` back
-* if owner will add user to group (calling method `setGroup`) and group will reach threshold, then all users's group will get some bonus tokens
+* if owner will add user to group (calling method <a href="#setgroup">setGroup</a>) and group will reach threshold, then all users's group will get some bonus tokens
+
+## How bonuses worked
+We create contract than will be send addition tokens for group of people which contributed more some thresholds. For example: 
+after $10,000 - 10%
+after $25,000 - 20%
+after $50,000 - 50%
+So initial params will be: 
+thresholds = [10000, 25000, 50000]
+bonuses = [0.1, 0.2, 0.5]
+
+for understanging math take variable price_USD_TOKEN = 10000000 ( $0.5 = ITR 1 )
+
+look at the table below
+<table>
+<head>
+<tr>
+<td rowspan="2"></td>
+<td rowspan="2">action</td>
+<td rowspan="2">person</td>
+<td colspan="2">total contributed,<br>$</td>
+<td colspan="2">bonus tokens contributed,<br>ITR</td>
+<td colspan="2">got by transaction,<br>ITR</td>
+<td>Total balance,<br>ITR</td>
+<td> "BestGroup" Total,<br>$</td>
+<td>"BestGroup" Bonus,<br>%</td>
+</tr>
+<tr>
+<td>old</td>
+<td>new</td>
+<td>old</td>
+<td>new</td>
+<td>main</td>
+<td>bonus</td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+</head>
+<body>
+<tr>
+<td>1</td>	
+<td colspan="9">
+Setup the same group "BestGroup"(<a href="#setgroup">setGroup</a>) for Person#1,Person#2
+</td>
+<td>0</td>
+<td>0</td>
+</tr>
+
+<tr>
+<td rowspan="4">2</td>	
+<td rowspan="4">Person#1 contributed $5,000</td>
+<td>Person#1</td>
+<td>0</td>
+<td>5,000</td>
+<td>0</td>
+<td>0</td>
+<td>10,000</td>
+<td>0</td>	
+<td>10,000</td>	
+<td rowspan="4">5,000</td>
+<td rowspan="4">0</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+
+<tr>
+<td rowspan="4">3</td>	
+<td rowspan="4">Person#1 contributed $7,000</td>
+<td>Person#1</td>
+<td>5,000</td>
+<td>12,000</td>
+<td>0</td>
+<td>2,400</td>
+<td>14,000</td>
+<td>2,400</td>	
+<td>26,400</td>	
+<td rowspan="4">12,000</td>
+<td rowspan="4">10</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+
+
+<tr>
+<td rowspan="4">4</td>	
+<td rowspan="4">Person#2 contributed $25,000</td>
+<td>Person#1</td>
+<td>12,000</td>
+<td>12,000</td>
+<td>2,400</td>
+<td>4,800</td>
+<td>0</td>	
+<td>2,400</td>
+<td>28,800</td>	
+<td rowspan="4">37,000</td>
+<td rowspan="4">20</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>0</td>
+<td>25,000</td>
+<td>0</td>
+<td>10,000</td>
+<td>50,000</td>
+<td>10,000</td>	
+<td>60,000</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+
+<tr>
+<td>5</td>	
+<td colspan="9">
+Setup the same group "BestGroup"(<a href="#setgroup">setGroup</a>) for Person#3
+</td>
+<td>37,000</td>
+<td>20</td>
+</tr>
+
+<tr>
+<td rowspan="4">6</td>	
+<td rowspan="4">Person#3 contributed $25,000</td>
+<td>Person#1</td>
+<td>12,000</td>
+<td>12,000</td>
+<td>4,800</td>
+<td>12,000</td>
+<td>0</td>	
+<td>7,200</td>
+<td>36,000</td>	
+<td rowspan="4">62,000</td>
+<td rowspan="4">50</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>25,000</td>
+<td>25,000</td>
+<td>10,000</td>
+<td>25,000</td>
+<td>0</td>
+<td>15,000</td>	
+<td>75,000</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0</td>
+<td>25,000</td>
+<td>0</td>
+<td>25,000</td>
+<td>50,000</td>
+<td>25,000</td>	
+<td>75,000</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>	
+<td>0</td>
+</tr>
+
+<tr>
+<td rowspan="4">7</td>	
+<td rowspan="4">Person#4 without any group  contributed $25,000</td>
+<td>Person#1</td>
+<td>12,000</td>
+<td>12,000</td>
+<td>4,800</td>
+<td>12,000</td>
+<td>0</td>	
+<td>7,200</td>
+<td>36,000</td>	
+<td rowspan="4">62,000</td>
+<td rowspan="4">50</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>25,000</td>
+<td>25,000</td>
+<td>10,000</td>
+<td>25,000</td>
+<td>0</td>
+<td>15,000</td>	
+<td>75,000</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0</td>
+<td>25,000</td>
+<td>0</td>
+<td>25,000</td>
+<td>50,000</td>
+<td>25,000</td>	
+<td>75,000</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+<td>50,000</td>
+<td>0</td>	
+<td>50,000</td>
+</tr>
+
+</body>	
+</table>
