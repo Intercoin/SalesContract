@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.6.0 <0.7.0;
+pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts-ethereum-package/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-import "@chainlink/contracts/src/v0.6/interfaces/AggregatorV3Interface.sol";
+import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
 
-contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
-    using SafeMath for uint256;
+contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+    using SafeMathUpgradeable for uint256;
     
     AggregatorV3Interface internal priceFeed;
     
@@ -62,7 +62,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * @param _thresholds thresholds
      * @param _bonuses bonuses
      */
-    constructor(
+     function init(
         address _sellingToken,
         address _chainLink, 
         uint256[] memory _timestamps,
@@ -71,7 +71,32 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256[] memory _thresholds,
         uint256[] memory _bonuses
     ) 
-        public 
+        public
+        virtual
+        initializer
+    {
+        __FundContract__init(
+            _sellingToken,
+            _chainLink, 
+            _timestamps,
+            _prices,
+            _endTime,
+            _thresholds,
+            _bonuses
+        );
+    }
+    
+    function __FundContract__init(
+        address _sellingToken,
+        address _chainLink, 
+        uint256[] memory _timestamps,
+        uint256[] memory _prices,
+        uint256 _endTime,
+        uint256[] memory _thresholds,
+        uint256[] memory _bonuses
+    ) 
+        internal 
+        initializer
     {
         
         __Ownable_init();
@@ -102,13 +127,14 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * Returns the latest price
      */
     function getLatestPrice() public view returns (int) {
-        (
-            uint80 roundID, 
-            int price,
-            uint startedAt,
-            uint timeStamp,
-            uint80 answeredInRound
-        ) = priceFeed.latestRoundData();
+        // (
+        //     uint80 roundID, 
+        //     int price,
+        //     uint startedAt,
+        //     uint timeStamp,
+        //     uint80 answeredInRound
+        // ) = priceFeed.latestRoundData();
+        (, int price,,,) = priceFeed.latestRoundData();
         return price;
     }
     
@@ -143,7 +169,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      */
     receive() external payable validGasPrice nonReentrant() {
         
-        require(endTime > now, 'exchange time is over');
+        require(endTime > block.timestamp, 'exchange time is over');
         
         int256 latestPrice = getLatestPrice(); // mul 1e8
         require(latestPrice > 0, 'latestPrice need to be more than zero');
@@ -155,10 +181,10 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256 amount2send = convertedPrice.div(tokenPrice);
 
         require(amount2send > 0 , 'can not calculate amount of tokens');                                       
-        uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
+        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, 'Amount exceeds allowed balance');
         
-        bool success = IERC20(sellingToken).transfer(_msgSender(), amount2send);
+        bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
         require(success == true, 'Transfer tokens were failed'); 
         
         // bonus calculation
@@ -183,7 +209,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
      * withdraw all tokens to owner
      */
     function withdrawAll() public onlyOwner {
-        _sendTokens(IERC20(sellingToken).balanceOf(address(this)), _msgSender());
+        _sendTokens(IERC20Upgradeable(sellingToken).balanceOf(address(this)), _msgSender());
     }
     
     /**
@@ -219,7 +245,7 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         uint256 ts = timestamps[0];
         price = prices[0];
         for (uint256 i = 0; i < timestamps.length; i++) {
-            if (now >= timestamps[i] && timestamps[i]>=ts) {
+            if (block.timestamp >= timestamps[i] && timestamps[i]>=ts) {
                 ts = timestamps[i];
                 price = prices[i];
             }
@@ -268,10 +294,10 @@ contract FundContract is OwnableUpgradeSafe, ReentrancyGuardUpgradeSafe {
         require(amount>0, 'Amount can not be zero');
         require(addr != address(0), 'address can not be empty');
         
-        uint256 tokenBalance = IERC20(sellingToken).balanceOf(address(this));
+        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount, 'Amount exceeds allowed balance');
         
-        bool success = IERC20(sellingToken).transfer(addr, amount);
+        bool success = IERC20Upgradeable(sellingToken).transfer(addr, amount);
         require(success == true, 'Transfer tokens were failed'); 
     }
     

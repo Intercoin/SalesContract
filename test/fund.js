@@ -44,7 +44,8 @@ contract('IntercoinContract', (accounts) => {
     it('common test', async () => {
         var ERC20MintableInstance = await ERC20Mintable.new('t1','t1', {from: accountTen});
         var AggregatorInstance = await Aggregator.new({from: accountTen});
-        var FundContractInstance = await FundContractMock.new(
+        var FundContractInstance = await FundContractMock.new();
+        await FundContractInstance.init(
             ERC20MintableInstance.address,
             AggregatorInstance.address,
             timestamps,
@@ -153,7 +154,8 @@ contract('IntercoinContract', (accounts) => {
         
         var timestamps2 = [timestamps[0]+1630454400,timestamps[1]+1630454400,timestamps[2]+1630454400];
         var lastTime2 = lastTime+1630454400;
-        var FundContractInstance = await FundContractMock.new(
+        var FundContractInstance = await FundContractMock.new();
+        await FundContractInstance.init(
             ERC20MintableInstance.address,
             AggregatorInstance.address,
             timestamps2,
