@@ -1,21 +1,21 @@
 {
-  "name": "Community",
+  "name": "FundContract",
   "version": "1.0.0",
-  "description": "Smart contract for managing community membership and roles",
+  "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Intercoin/CommunityContract.git"
+    "url": "git+https://github.com/Intercoin/FundContract.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Intercoin/CommunityContract/issues"
+    "url": "https://github.com/Intercoin/FundContract/issues"
   },
-  "homepage": "https://github.com/Intercoin/CommunityContract#readme",
+  "homepage": "https://github.com/Intercoin/FundContract#readme",
   "dependencies": {
     "@chainlink/contracts": "^0.1.6",
     "@openzeppelin/contracts-upgradeable": "^4.0.0",
