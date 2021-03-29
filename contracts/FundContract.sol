@@ -8,8 +8,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
+import "./IntercoinTrait.sol";
 
-contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable {
+contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
     using SafeMathUpgradeable for uint256;
     
     AggregatorV3Interface internal priceFeed;
