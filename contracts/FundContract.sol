@@ -7,23 +7,19 @@ import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
-import "@chainlink/contracts/src/v0.7/interfaces/AggregatorV3Interface.sol";
 import "./IntercoinTrait.sol";
 
 contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
     using SafeMathUpgradeable for uint256;
     
-    AggregatorV3Interface internal priceFeed;
-    
     address internal sellingToken;
-    address internal chainLink;
     uint256[] internal timestamps;
     uint256[] internal prices;
     uint256 internal endTime;
     
     uint256 internal maxGasPrice;
     
-    uint256 internal ethDenom;
+    uint256 constant internal priceDenom = 100000000;//1*10**8;
 
     struct Participant {
         string groupName;
@@ -42,8 +38,10 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     mapping(string => Group) groups;
     mapping(address => Participant) participants;
     
+    mapping(address => uint256) totalInvestedGroupOutside;
     
-    uint256[] thresholds; // count in usd (mul by 1e8)
+    
+    uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
     
     modifier validGasPrice() {
@@ -52,11 +50,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     } 
     
     /**
-     * Network: Mainnet
-     * Aggregator: ETH/USD
-     * Address: 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
      * @param _sellingToken address of ITR token
-     * @param _chainLink aggregator's address
      * @param _timestamps array of timestamps
      * @param _prices price exchange
      * @param _endTime after this time exchange stop
@@ -65,7 +59,6 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
      */
      function init(
         address _sellingToken,
-        address _chainLink, 
         uint256[] memory _timestamps,
         uint256[] memory _prices,
         uint256 _endTime,
@@ -77,8 +70,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         initializer
     {
         __FundContract__init(
-            _sellingToken,
-            _chainLink, 
+            _sellingToken, 
             _timestamps,
             _prices,
             _endTime,
@@ -89,7 +81,6 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     
     function __FundContract__init(
         address _sellingToken,
-        address _chainLink, 
         uint256[] memory _timestamps,
         uint256[] memory _prices,
         uint256 _endTime,
@@ -103,15 +94,12 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         __Ownable_init();
         __ReentrancyGuard_init();
         
-        require(_sellingToken != address(0), 'token can not be zero');
-        require(_chainLink != address(0), 'token can not be zero');
+        require(_sellingToken != address(0), 'FundContract: _sellingToken can not be zero');
         
         maxGasPrice = 1*10**18; 
         
-        ethDenom = 1*10**18;
         
         sellingToken = _sellingToken;
-        chainLink = _chainLink;
         timestamps = _timestamps;
         prices = _prices;
         endTime = _endTime;
@@ -119,24 +107,6 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         bonuses = _bonuses;
         
         
-        priceFeed = AggregatorV3Interface(_chainLink);
-        
-    }
-    
-    
-    /**
-     * Returns the latest price
-     */
-    function getLatestPrice() public view returns (int) {
-        // (
-        //     uint80 roundID, 
-        //     int price,
-        //     uint startedAt,
-        //     uint timeStamp,
-        //     uint80 answeredInRound
-        // ) = priceFeed.latestRoundData();
-        (, int price,,,) = priceFeed.latestRoundData();
-        return price;
     }
     
     /**
@@ -147,8 +117,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         public 
         view 
         returns ( 
-            address _sellingToken,
-            address _chainLink, 
+            address _sellingToken, 
             uint256[] memory _timestamps,
             uint256[] memory _prices,
             uint256 _endTime,
@@ -157,7 +126,6 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         ) 
     {
         _sellingToken = sellingToken;
-        _chainLink = chainLink;
         _timestamps = timestamps;
         _prices = prices;
         _endTime = endTime;
@@ -166,24 +134,19 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     }
     
     /**
-     * exchange eth to token via ratios ETH/USD andd USD/<token>
+     * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable validGasPrice nonReentrant() {
         
-        require(endTime > block.timestamp, 'exchange time is over');
+        require(endTime > block.timestamp, 'FundContract: Exchange time is over');
         
-        int256 latestPrice = getLatestPrice(); // mul 1e8
-        require(latestPrice > 0, 'latestPrice need to be more than zero');
-        //msg.value
         uint256 tokenPrice = getTokenPrice();
         
-        // usd -> itr
-        uint256 convertedPrice = (msg.value).mul(uint256(latestPrice));
-        uint256 amount2send = convertedPrice.div(tokenPrice);
-
-        require(amount2send > 0 , 'can not calculate amount of tokens');                                       
+        uint256 amount2send = _getTokenAmount(msg.value, tokenPrice);
+        require(amount2send > 0, 'FundContract: Can not calculate amount of tokens');                                       
+                                
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount2send, 'Amount exceeds allowed balance');
+        require(tokenBalance >= amount2send, 'FundContract: Amount exceeds allowed balance');
         
         bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
         require(success == true, 'Transfer tokens were failed'); 
@@ -191,12 +154,12 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         // bonus calculation
         _addBonus(
             _msgSender(), 
-            convertedPrice,
+            (msg.value),
             tokenPrice
         );
         
     }
-
+    
     /**
      * withdraw some tokens to address
      * @param amount amount of tokens
@@ -240,7 +203,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     }
     
     /**
-     * get exchange rate USD -> sellingToken
+     * get exchange rate ETH -> sellingToken
      */
     function getTokenPrice() public view returns (uint256 price) {
         uint256 ts = timestamps[0];
@@ -261,7 +224,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
         bonus = 0;
         
         if (groups[groupName].exists == true) {
-            uint256 groupTotalAmount = groups[groupName].totalAmount.div(ethDenom);
+            uint256 groupTotalAmount = groups[groupName].totalAmount;
             uint256 tmp = 0;
             for (uint256 i = 0; i < thresholds.length; i++) {
                 if (groupTotalAmount >= thresholds[i] && thresholds[i] >= tmp) {
@@ -270,6 +233,15 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
                 }
             }
         }
+    }
+    
+    /**
+     * calculate token's amount
+     * @param amount amount in eth that should be converted in tokenAmount
+     * @param price token price
+     */
+    function _getTokenAmount(uint256 amount, uint256 price) internal pure returns (uint256) {
+        return (amount).mul(priceDenom).div(price);
     }
     
     /**
@@ -309,6 +281,9 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     function _setGroup(address addr, string memory groupName) internal {
         require(addr != address(0), 'address can not be empty');
         require(bytes(groupName).length != 0, 'groupName can not be empty');
+        
+        uint256 tokenPrice = getTokenPrice();
+        
         if (participants[addr].exists == false) {
             participants[addr].exists = true;
             participants[addr].contributed = 0;
@@ -321,50 +296,66 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
             } 
             
             groups[groupName].participants.push(addr);
+            
+            if (totalInvestedGroupOutside[addr] > 0) {
+                _addBonus(
+                    addr,
+                    totalInvestedGroupOutside[addr],
+                    tokenPrice
+                );
+            }
+            
         }
     }
     
     /**
      * calculate user bonus tokens and send it to him
      * @param addr Address of participant
-     * @param convertedPrice eth.mul(latestPrice) i.e. equivalent in usd (multiplied by ie8(latestPrice) and 1e18(eth denom))
-     * @param tokenPrice price ratio usd -> token
+     * @param ethAmount amount
+     * @param tokenPrice price ratio ETH -> token
      */
     function _addBonus(
         address addr, 
-        uint256 convertedPrice,
+        uint256 ethAmount,
         uint256 tokenPrice
     ) 
         internal 
     {
+
         if (participants[addr].exists == true) {
             
             string memory groupName = participants[addr].groupName;
             
-            groups[groupName].totalAmount = groups[groupName].totalAmount.add(convertedPrice);
-            participants[addr].totalAmount = participants[addr].totalAmount.add(convertedPrice);
+            groups[groupName].totalAmount = groups[groupName].totalAmount.add(ethAmount);
+            participants[addr].totalAmount = participants[addr].totalAmount.add(ethAmount);    
             
             //// send tokens
             uint256 groupBonus = getGroupBonus(groupName);
             address participantAddr;
-            uint256 bonus2Send;
             uint256 participantTotalBonusTokens;
             for (uint256 i = 0; i < groups[groupName].participants.length; i++) {
                 participantAddr = groups[groupName].participants[i];
 
-                participantTotalBonusTokens = participants[participantAddr].totalAmount.
-                                                                                mul(groupBonus).
-                                                                                div(tokenPrice).
-                                                                                div(1e2);
+                participantTotalBonusTokens = _getTokenAmount(
+                                                                participants[participantAddr].totalAmount, 
+                                                                tokenPrice
+                                                            ).
+                                                            mul(groupBonus).
+                                                            div(1e2);
 
-                bonus2Send = participantTotalBonusTokens.sub(participants[participantAddr].contributed);
-                if (bonus2Send > 0) {
+                if (participantTotalBonusTokens > participants[participantAddr].contributed) {
+                    uint256 amount2Send = participantTotalBonusTokens.sub(
+                        participants[participantAddr].contributed
+                    );
                     participants[participantAddr].contributed = participantTotalBonusTokens;
+                  
+                    _sendTokens(amount2Send, participantAddr);
                     
-                    _sendTokens(bonus2Send, participantAddr);
                 }
             }
                
+        } else {
+            totalInvestedGroupOutside[addr] = totalInvestedGroupOutside[addr].add(ethAmount);    
         }
     }
     

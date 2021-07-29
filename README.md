@@ -1,8 +1,6 @@
 # FundContract
 
 # Installation
-## Node
-`npm install @openzeppelin/contracts-ethereum-package`
 
 # Deploy
 when deploy it is need to pass parameters in to constructor
@@ -11,9 +9,8 @@ Params:
 name | type | description | example
 --|--|--|--
 _sellingToken|address|address of <a target="_blank" href="https://etherscan.io/token/0x6ef5febbd2a56fab23f18a69d3fb9f4e2a70440b">ITR token</a> | 0x6Ef5febbD2A56FAb23f18a69d3fB9F4E2A70440B
-_chainLink|address| aggregator's address (<a target="_blank" href="https://docs.chain.link/docs/ethereum-addresses">list</a>) | 0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419
 _timestamps|uint256[] | array of timestamps(gmt) | [1609459200, 1614556800, 1619827200]
-_prices|uint256[]| array prices exchange in usd (mul by 1e8) | [12000000, 15000000, 18000000]
+_prices|uint256[]| array prices exchange in eth (mul by 1e8) | [12000000, 15000000, 18000000]
 _endTime|uint256| after this time exchange will be stopped | 1630454400
 _thresholds|uint256[]| after group reach threshold (mul by 1e8) of usd, every members will get bonuses | [1000000000000, 2500000000000, 5000000000000]
 _bonuses|uint256[]| bonuses in percents (mul by 100) i.e. 10%,20%,30%   or 0.1,0.2,0.5  | [10, 20, 50]
@@ -32,11 +29,6 @@ once installed will be use methods to exchange
 	</tr>
 </thead>
 <tbody>
-    <tr>
-		<td><a href="#getlatestprice">getLatestPrice</a></td>
-		<td>anyone</td>
-		<td>method return the latest price eth/usd</td>
-	</tr>
 	<tr>
 		<td><a href="#getconfig">getConfig</a></td>
 		<td>anyone</td>
@@ -45,7 +37,7 @@ once installed will be use methods to exchange
 	<tr>
 		<td><a href="#receive">receive</a></td>
 		<td>anyone</td>
-		<td>internal method triggered if contract getting ETH.<br> it will exchange eth to token via ratios ETH/USD and USD/`sellingToken`</td>
+		<td>internal method triggered if contract getting ETH.<br> it will exchange eth to tokens</td>
 	</tr>
 	<tr>
 		<td><a href="#getgroupbonus">getGroupBonus</a></td>
@@ -85,10 +77,6 @@ once installed will be use methods to exchange
 </tbody>
 </table>
 
-
-#### getLatestPrice
-
-will return int price
 
 #### getConfig
 
@@ -143,31 +131,33 @@ groupName|string| group name.  if group doesn't exists it will be created
 * transfer to contract some `sellingToken`
 * now any user which send eth to contract will be able to get `sellingToken` back
 * if owner will add user to group (calling method <a href="#setgroup">setGroup</a>) and group will reach threshold, then all users's group will get some bonus tokens
+* Additionally if user get tokens without group and then will become an any group member. all contributed tokens will be a part of group and will increase group bonus
 
-## How bonuses worked
+## How bonuses work
 We create contract than will be send addition tokens for group of people which contributed more some thresholds. For example: 
-after $10,000 - 10%
-after $25,000 - 20%
-after $50,000 - 50%
-So initial params will be: 
-thresholds = [10000, 25000, 50000]
-bonuses = [0.1, 0.2, 0.5]
-
-for understanging math take variable price_USD_TOKEN = 10000000 ( $0.5 = ITR 1 )
-
-look at the table below
+after 10 ETH - 10% <br>
+after 25 ETH - 20% <br>
+after 50 ETH - 50% <br>
+So initial params will be: <br>
+thresholds = [10_000000000000000000, 25_000000000000000000, 50_000000000000000000]<br>
+bonuses = [10, 20, 50]<br>
+here thresholds set in wei and bonuses multiplied by 100<br>
+<br>
+for understanging math take variable price_ETH_TOKEN = 10000000 ( 0.5 ETH = 1 ITR)<br>
+<br>
+look at the table below<br>
 <table>
 <head>
 <tr>
 <td rowspan="2"></td>
 <td rowspan="2">action</td>
 <td rowspan="2">person</td>
-<td colspan="2">total contributed,<br>$</td>
+<td colspan="2">total contributed,<br>ETH</td>
 <td colspan="2">bonus tokens contributed,<br>ITR</td>
 <td colspan="2">got by transaction,<br>ITR</td>
 <td>Total balance,<br>ITR</td>
-<td> "BestGroup" Total,<br>$</td>
-<td>"BestGroup" Bonus,<br>%</td>
+<td colspan="2">"BestGroup" Total,<br>ETH</td>
+<td colspan="2">"BestGroup#2" Bonus,<br>%</td>
 </tr>
 <tr>
 <td>old</td>
@@ -177,8 +167,10 @@ look at the table below
 <td>main</td>
 <td>bonus</td>
 <td></td>
-<td></td>
-<td></td>
+<td>Total,<br>ETH</td>
+<td>Bonus,<br>%</td>
+<td>Total,<br>ETH</td>
+<td>Bonus,<br>%</td>
 </tr>
 </head>
 <body>
@@ -187,244 +179,306 @@ look at the table below
 <td colspan="9">
 Setup the same group "BestGroup"(<a href="#setgroup">setGroup</a>) for Person#1,Person#2
 </td>
-<td>0</td>
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
 </tr>
-
 <tr>
 <td rowspan="4">2</td>	
 <td rowspan="4">Person#1 contributed $5,000</td>
 <td>Person#1</td>
 <td>0</td>
-<td>5,000</td>
-<td>0</td>
-<td>0</td>
-<td>10,000</td>
-<td>0</td>	
-<td>10,000</td>	
-<td rowspan="4">5,000</td>
-<td rowspan="4">0</td>
+<td>5.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>10.0</td>
+<td>0.0</td>	
+<td>10.0</td>	
+<td rowspan="4">5.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
 </tr>
 <tr>
 <td>Person#2</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
 <tr>
 <td>Person#3</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
 <tr>
 <td>Person#4</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
-
 <tr>
 <td rowspan="4">3</td>	
 <td rowspan="4">Person#1 contributed $7,000</td>
 <td>Person#1</td>
-<td>5,000</td>
-<td>12,000</td>
-<td>0</td>
-<td>2,400</td>
-<td>14,000</td>
-<td>2,400</td>	
-<td>26,400</td>	
-<td rowspan="4">12,000</td>
-<td rowspan="4">10</td>
+<td>5.0</td>
+<td>12.0</td>
+<td>0.0</td>
+<td>2.4</td>
+<td>14.0</td>
+<td>2.4</td>	
+<td>26.4</td>	
+<td rowspan="4">12.0</td>
+<td rowspan="4">10.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
 </tr>
 <tr>
 <td>Person#2</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
 <tr>
 <td>Person#3</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
 <tr>
 <td>Person#4</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
-
-
 <tr>
 <td rowspan="4">4</td>	
-<td rowspan="4">Person#2 contributed $25,000</td>
+<td rowspan="4">Person#2 contributed 25 ETH</td>
 <td>Person#1</td>
-<td>12,000</td>
-<td>12,000</td>
-<td>2,400</td>
-<td>4,800</td>
-<td>0</td>	
-<td>2,400</td>
-<td>28,800</td>	
-<td rowspan="4">37,000</td>
-<td rowspan="4">20</td>
+<td>12.0</td>
+<td>12.0</td>
+<td>2.4</td>
+<td>4.8</td>
+<td>0.0</td>	
+<td>2.4</td>
+<td>28.8</td>	
+<td rowspan="4">37.0</td>
+<td rowspan="4">20.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
 </tr>
 <tr>
 <td>Person#2</td>
-<td>0</td>
-<td>25,000</td>
-<td>0</td>
-<td>10,000</td>
-<td>50,000</td>
-<td>10,000</td>	
-<td>60,000</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>10.0</td>
+<td>50.0</td>
+<td>10.0</td>	
+<td>60.0</td>
 </tr>
 <tr>
 <td>Person#3</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
 <tr>
 <td>Person#4</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
-
 <tr>
 <td>5</td>	
 <td colspan="9">
 Setup the same group "BestGroup"(<a href="#setgroup">setGroup</a>) for Person#3
 </td>
-<td>37,000</td>
-<td>20</td>
+<td>37.0</td>
+<td>20.0</td>
+<td>0.0</td>
+<td>0.0</td>
 </tr>
-
 <tr>
 <td rowspan="4">6</td>	
 <td rowspan="4">Person#3 contributed $25,000</td>
 <td>Person#1</td>
-<td>12,000</td>
-<td>12,000</td>
-<td>4,800</td>
-<td>12,000</td>
-<td>0</td>	
-<td>7,200</td>
-<td>36,000</td>	
-<td rowspan="4">62,000</td>
-<td rowspan="4">50</td>
+<td>12.0</td>
+<td>12.0</td>
+<td>4.8</td>
+<td>12.0</td>
+<td>0.0</td>	
+<td>7.2</td>
+<td>36.0</td>	
+<td rowspan="4">62.0</td>
+<td rowspan="4">50.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
 </tr>
 <tr>
 <td>Person#2</td>
-<td>25,000</td>
-<td>25,000</td>
-<td>10,000</td>
-<td>25,000</td>
-<td>0</td>
-<td>15,000</td>	
-<td>75,000</td>
+<td>25.0</td>
+<td>25.0</td>
+<td>10.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>15.0</td>	
+<td>75.0</td>
 </tr>
 <tr>
 <td>Person#3</td>
-<td>0</td>
-<td>25,000</td>
-<td>0</td>
-<td>25,000</td>
-<td>50,000</td>
-<td>25,000</td>	
-<td>75,000</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>50.0</td>
+<td>25.0</td>	
+<td>75.0</td>
 </tr>
 <tr>
 <td>Person#4</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>	
-<td>0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>0.0</td>
 </tr>
-
 <tr>
 <td rowspan="4">7</td>	
-<td rowspan="4">Person#4 without any group  contributed $25,000</td>
+<td rowspan="4">Person#4 without any group  contributed 25 ETH </td>
 <td>Person#1</td>
-<td>12,000</td>
-<td>12,000</td>
-<td>4,800</td>
-<td>12,000</td>
-<td>0</td>	
-<td>7,200</td>
-<td>36,000</td>	
-<td rowspan="4">62,000</td>
-<td rowspan="4">50</td>
+<td>12.0</td>
+<td>12.0</td>
+<td>4.8</td>
+<td>12.0</td>
+<td>0.0</td>	
+<td>7.2</td>
+<td>36.0</td>	
+<td rowspan="4">62.0</td>
+<td rowspan="4">50.0</td>
+<td rowspan="4">0.0</td>
+<td rowspan="4">0.0</td>
 </tr>
 <tr>
 <td>Person#2</td>
-<td>25,000</td>
-<td>25,000</td>
-<td>10,000</td>
-<td>25,000</td>
-<td>0</td>
-<td>15,000</td>	
-<td>75,000</td>
+<td>25.0</td>
+<td>25.0</td>
+<td>10.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>15.0</td>	
+<td>75.0</td>
 </tr>
 <tr>
 <td>Person#3</td>
-<td>0</td>
-<td>25,000</td>
-<td>0</td>
-<td>25,000</td>
-<td>50,000</td>
-<td>25,000</td>	
-<td>75,000</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>50.0</td>
+<td>25.0</td>	
+<td>75.0</td>
 </tr>
 <tr>
 <td>Person#4</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-<td>50,000</td>
-<td>0</td>	
-<td>50,000</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>0.0</td>
+<td>50.0</td>
+<td>0.0</td>	
+<td>50.0</td>
 </tr>
-
+<tr>
+<td>8</td>	
+<td colspan="9">
+Setup the same group "BestGroup#2"(<a href="#setgroup">setGroup</a>) for Person#4
+</td>
+<td>62.0</td>
+<td>50.0</td>
+<td>25.0</td>
+<td>20.0</td>
+</tr>
+<tr>
+<td rowspan="4">10</td>	
+<td rowspan="4">Finally </td>
+<td>Person#1</td>
+<td>12.0</td>
+<td>12.0</td>
+<td>4.8</td>
+<td>12.0</td>
+<td>0</td>	
+<td>7.2</td>
+<td>36.0</td>	
+<td rowspan="4">62.0</td>
+<td rowspan="4">50.0</td>
+<td rowspan="4">25.0</td>
+<td rowspan="4">20.0</td>
+</tr>
+<tr>
+<td>Person#2</td>
+<td>25.0</td>
+<td>25.0</td>
+<td>10.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>15.0</td>	
+<td>75.0</td>
+</tr>
+<tr>
+<td>Person#3</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>0.0</td>
+<td>25.0</td>
+<td>50.0</td>
+<td>25.0</td>	
+<td>75.0</td>
+</tr>
+<tr>
+<td>Person#4</td>
+<td>25.0</td>
+<td>25.0</td>
+<td>50.0</td>
+<td>10.0</td>
+<td>0.0</td>
+<td>0.0</td>	
+<td>60.0</td>
+</tr>
 </body>	
 </table>

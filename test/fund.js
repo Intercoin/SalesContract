@@ -32,22 +32,20 @@ contract('IntercoinContract', (accounts) => {
     const zeroAddr = '0x0000000000000000000000000000000000000000';
     
     // predefined init params
-    const timestamps = [1609459200, 1614556800, 1619827200]
-    const prices = [12000000, 15000000, 18000000];
-    const lastTime = 1630454400;
-    const thresholds = [10000_00000000, 25000_00000000, 50000_00000000];// count in usd (mul by 1e8)
+    const timestamps = [1625097600, 1630454400, 1635724800]; // 1 (July/September/November) 2021 г., 
+    const prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
+    const lastTime = 1638316800; // 1 December 2021 г., 
+    const thresholds = [BigNumber(10_000000000000000000), BigNumber(25_000000000000000000), BigNumber(50_000000000000000000)];// count in eth (10/25/50)
     const bonuses = [10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
-    
+    const ethDenom = BigNumber(1_00000000);
       
     const amountETHSendToContract = 10*10**18; // 10ETH
     
     it('common test', async () => {
         var ERC20MintableInstance = await ERC20Mintable.new('t1','t1', {from: accountTen});
-        var AggregatorInstance = await Aggregator.new({from: accountTen});
         var FundContractInstance = await FundContractMock.new();
         await FundContractInstance.init(
             ERC20MintableInstance.address,
-            AggregatorInstance.address,
             timestamps,
             prices,
             lastTime,
@@ -56,7 +54,7 @@ contract('IntercoinContract', (accounts) => {
             {from: accountTen}
         );
         
-        var ratio_USD_ITR = await FundContractInstance.getTokenPrice({from: accountTen});
+        var ratio_ETH_ITR = await FundContractInstance.getTokenPrice({from: accountTen});
     
         // send ETH to Contract, but it should be revert with message "Amount exceeds allowed balance"
         await truffleAssert.reverts(
@@ -76,14 +74,11 @@ contract('IntercoinContract', (accounts) => {
             from:accountTwo,
             to: FundContractInstance.address, 
             value: amountETHSendToContract,
-            gas: 2000000
+            gas: 150000
         });
 
-        var tmp = await AggregatorInstance.latestRoundData({from: accountTen});
-        var ratio_ETH_USD = tmp[1];
-        
         var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo);
-        var calculatedAmountOfTokens = (BigNumber(amountETHSendToContract).times(BigNumber(ratio_ETH_USD)).div(BigNumber(ratio_USD_ITR))).integerValue();
+        var calculatedAmountOfTokens = (BigNumber(amountETHSendToContract).times(ethDenom).div(BigNumber(ratio_ETH_ITR))).integerValue();
         var accountTwoBalanceExpected = BigNumber(accountTwoBalanceBefore).plus(calculatedAmountOfTokens);
 
         
@@ -111,7 +106,7 @@ contract('IntercoinContract', (accounts) => {
         // console.log('3=',(await FundContractInstance.getExchangePriceUSD({from: accountTen})).toString());
         
         // go to end time
-        helper.advanceTimeAndBlock(1630454400);
+        helper.advanceTimeAndBlock(lastTime-(new Date().getTime()));
         
         var accountFourthBalanceBefore = (await web3.eth.getBalance(accountFourth));
              
@@ -152,12 +147,15 @@ contract('IntercoinContract', (accounts) => {
         var ERC20MintableInstance = await ERC20Mintable.new('t1','t1', {from: accountTen});
         var AggregatorInstance = await Aggregator.new({from: accountTen});
         
-        var timestamps2 = [timestamps[0]+1630454400,timestamps[1]+1630454400,timestamps[2]+1630454400];
-        var lastTime2 = lastTime+1630454400;
+        var timestamps2 = [
+            lastTime,
+            lastTime+(timestamps[1]-timestamps[0]),
+            lastTime+(timestamps[2]-timestamps[0])
+        ];
+        var lastTime2 = lastTime+(lastTime-timestamps[0]);
         var FundContractInstance = await FundContractMock.new();
         await FundContractInstance.init(
             ERC20MintableInstance.address,
-            AggregatorInstance.address,
             timestamps2,
             prices,
             lastTime2,
@@ -165,34 +163,29 @@ contract('IntercoinContract', (accounts) => {
             bonuses,
             {from: accountTen}
         );
-        var tmp = await AggregatorInstance.latestRoundData({from: accountTen});
-        var ratio_ETH_USD = tmp[1];
         
-        var ratio_USD_ITR = await FundContractInstance.getTokenPrice({from: accountTen});
+        var ratio_ETH_ITR = await FundContractInstance.getTokenPrice({from: accountTen});
         
-        // equivalent $10k in eth
-        var ethAmount1 = BigNumber(10000).times(BigNumber(1*1e18)).times(BigNumber(1*1e8)).div(BigNumber(ratio_ETH_USD));
-        // equivalent $20k in eth
-        var ethAmount2 = BigNumber(20000).times(BigNumber(1*1e18)).times(BigNumber(1*1e8)).div(BigNumber(ratio_ETH_USD));
-        
-// console.log('ethAmount1=' , ethAmount1.toString());        
-// console.log('ethAmount2=' , ethAmount2.toString());        
-// console.log('ratio_ETH_USD=' , ratio_ETH_USD.toString());        
+        // equivalent thresholds[0]
+        var ethAmount1 = BigNumber(thresholds[0]);
+        // equivalent thresholds[1]
+        var ethAmount2 = BigNumber(thresholds[1]);
 
         await ERC20MintableInstance.mint(FundContractInstance.address, BigNumber(1000000*1e18), {from: accountTen})
         
         await FundContractInstance.setGroup([accountOne,accountTwo], 'TestGroupName', {from: accountTen});
-        
+       
         var accountOneBalanceBefore = await ERC20MintableInstance.balanceOf(accountOne);
         var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo);
 // console.log((await FundContractInstance.getGroupBonus('TestGroupName')).toString());                
+  
         await web3.eth.sendTransaction({
             from:accountOne,
             to: FundContractInstance.address, 
             value: ethAmount1.integerValue(),
             gas: 2000000
         });
-        
+  
         var accountOneBalanceMiddle = await ERC20MintableInstance.balanceOf(accountOne);
 // console.log((await FundContractInstance.getGroupBonus('TestGroupName')).toString());                
         await web3.eth.sendTransaction({
@@ -211,16 +204,16 @@ contract('IntercoinContract', (accounts) => {
         var accountOneBalanceAfter = await ERC20MintableInstance.balanceOf(accountOne);
         var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo);
         
-        var base = BigNumber(10000).times(BigNumber(1*1e18)).times(BigNumber(1*1e8)).div(ratio_USD_ITR);
+        var base = (BigNumber(ethAmount1).times(ethDenom).div(BigNumber(ratio_ETH_ITR))).integerValue();
         assert.equal(
-            BigNumber(accountOneBalanceMiddle/1000000).toFixed(0),
-            BigNumber(base.plus(base.times(BigNumber(0.1)))/1000000).toFixed(0),
+            BigNumber(accountOneBalanceMiddle).toFixed(0),
+            BigNumber(base.plus(base.times(BigNumber(0.1)))).toFixed(0),
             'accountOneBalanceMiddle wrong'
         );
         
         assert.equal(
-            BigNumber(accountOneBalanceAfter/100000000).toFixed(0),
-            BigNumber(base.plus(base.times(BigNumber(0.2)))/100000000).toFixed(0),
+            BigNumber(accountOneBalanceAfter).toFixed(0),
+            BigNumber(base.plus(base.times(BigNumber(0.2)))).toFixed(0),
             'accountOneBalanceAfter wrong'
         );
         
