@@ -6,10 +6,10 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-
+import "./interfaces/IFundContract.sol";
 import "./IntercoinTrait.sol";
 
-contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
+contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait, IFundContract {
     using SafeMathUpgradeable for uint256;
     
     address internal sellingToken;
@@ -67,6 +67,7 @@ contract FundContract is OwnableUpgradeable, ReentrancyGuardUpgradeable, Interco
     ) 
         public
         virtual
+        override
         initializer
     {
         __FundContract__init(
