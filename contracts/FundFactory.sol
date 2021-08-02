@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
    
     address contractInstance;
+    mapping(address => address[]) list;
     event Produced(address caller, address addr);
   
     function init(address _contractInstance) public initializer  {
@@ -48,10 +49,21 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         );
 
         emit Produced(msg.sender, proxy);
+        list[msg.sender].push(proxy);
         
         OwnableUpgradeable(proxy).transferOwnership(msg.sender);
         
         return proxy;
+    }
+    
+    function producedList(
+        address sender
+    )
+        public 
+        view
+        returns(address[] memory)
+    {
+        return list[sender];
     }
     
     function createClone(address target) internal returns (address result) {
