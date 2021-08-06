@@ -3,16 +3,20 @@
 # Installation
 
 # Deploy
-when deploy it is need to pass parameters in to constructor
+deploy can be done in several ways:<br>
+1. through <a target="_blank" href="https://github.com/Intercoin/IntercoinContract">intercoin factory mechanism</a>
+2. deploy FundFactory before and call method produce 
+3. deploy FundContract directly in the network and call method <a href="#init">init</a>
 
-Params:
+in all cases need to specify parameters:<br>
+
 name | type | description | example
 --|--|--|--
 _sellingToken|address|address of <a target="_blank" href="https://etherscan.io/token/0x6ef5febbd2a56fab23f18a69d3fb9f4e2a70440b">ITR token</a> | 0x6Ef5febbD2A56FAb23f18a69d3fB9F4E2A70440B
 _timestamps|uint256[] | array of timestamps(gmt) | [1609459200, 1614556800, 1619827200]
 _prices|uint256[]| array prices exchange in eth (mul by 1e8) | [12000000, 15000000, 18000000]
 _endTime|uint256| after this time exchange will be stopped | 1630454400
-_thresholds|uint256[]| after group reach threshold (mul by 1e8) of usd, every members will get bonuses | [1000000000000, 2500000000000, 5000000000000]
+_thresholds|uint256[]| after group reach threshold of ETH(in wei), every members will get bonuses | [10000000000000000000, 25000000000000000000, 50000000000000000000]
 _bonuses|uint256[]| bonuses in percents (mul by 100) i.e. 10%,20%,30%   or 0.1,0.2,0.5  | [10, 20, 50]
 
 # Overview
@@ -129,12 +133,12 @@ groupName|string| group name.  if group doesn't exists it will be created
 
 * deploy contract (through <a target="_blank" href="https://github.com/Intercoin/IntercoinContract">intercoin factory mechanism</a> )
 * transfer to contract some `sellingToken`
-* now any user which send eth to contract will be able to get `sellingToken` back
+* now any user which send eth to contract will be able to get `sellingToken` back, until `ednTime` expired or contract have enough token to return back.
 * if owner will add user to group (calling method <a href="#setgroup">setGroup</a>) and group will reach threshold, then all users's group will get some bonus tokens
 * Additionally if user get tokens without group and then will become an any group member. all contributed tokens will be a part of group and will increase group bonus
 
 ## How bonuses work
-We create contract than will be send addition tokens for group of people which contributed more some thresholds. For example: 
+We create contract that will be send addition tokens for group of people which contributed more than thresholds. For example: <br>
 after 10 ETH - 10% <br>
 after 25 ETH - 20% <br>
 after 50 ETH - 50% <br>
@@ -144,8 +148,9 @@ bonuses = [10, 20, 50]<br>
 here thresholds set in wei and bonuses multiplied by 100<br>
 <br>
 for understanging math take variable price_ETH_TOKEN = 10000000 ( 0.5 ETH = 1 ITR)<br>
-<br>
-look at the table below<br>
+
+<details>
+<summary>look at the table below</summary>
 <table>
 <head>
 <tr>
@@ -482,3 +487,6 @@ Setup the same group "BestGroup#2"(<a href="#setgroup">setGroup</a>) for Person#
 </tr>
 </body>	
 </table>
+
+</details>
+
