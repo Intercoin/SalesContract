@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-interface IFundContract {
+interface IFundContractToken {
     /**
+     * @param _payToken address of token's pay
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
@@ -11,6 +12,7 @@ interface IFundContract {
      * @param _bonuses bonuses
      */
      function init(
+        address _payToken,
         address _sellingToken,
         uint256[] memory _timestamps,
         uint256[] memory _prices,

@@ -2,12 +2,14 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IFundContract.sol";
+import "./interfaces/IFundContractToken.sol";
 import "./FundContractBase.sol";
 
-contract FundContract is FundContractBase, IFundContract {
-        
+contract FundContractToken is FundContractBase, IFundContractToken {
+    address internal payToken;
+    
     /**
+     * @param _payToken address of ITR token
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
@@ -16,6 +18,7 @@ contract FundContract is FundContractBase, IFundContract {
      * @param _bonuses bonuses
      */
      function init(
+        address _payToken,
         address _sellingToken,
         uint256[] memory _timestamps,
         uint256[] memory _prices,
@@ -24,32 +27,9 @@ contract FundContract is FundContractBase, IFundContract {
         uint256[] memory _bonuses
     ) 
         public
-        virtual
+        initializer
         override
-        initializer
     {
-        __FundContract__init(
-            _sellingToken, 
-            _timestamps,
-            _prices,
-            _endTime,
-            _thresholds,
-            _bonuses
-        );
-    }
-    
-    function __FundContract__init(
-        address _sellingToken,
-        uint256[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses
-    ) 
-        internal 
-        initializer
-    {
-        
         __FundContractBase__init(
             _sellingToken, 
             _timestamps,
@@ -59,29 +39,49 @@ contract FundContract is FundContractBase, IFundContract {
             _bonuses
         );
         
+        __FundContractToken__init(_payToken);
+    }
+    
+    function __FundContractToken__init(
+        address _payToken
+    ) 
+        internal 
+        initializer
+    {
+        
+        require(_payToken != address(0), 'FundContractToken: _payToken can not be zero');
+        payToken = _payToken;
+        
     }
     
     /**
      * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable validGasPrice nonReentrant() {
-        
+        revert("not support");
        _exchange(msg.value);
         
     }
     
+    function buy(uint256 amount) public {
+        
+        bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
+        require(success == true, 'Transfer tokens were failed'); 
+        
+        _exchange(amount); 
+    }
     /**
      * @param amount amount of eth
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal override {
         
-        require(address(this).balance >= amount, 'Amount exceeds allowed balance');
+        require(IERC20Upgradeable(payToken).balanceOf(address(this)) >= amount, 'Amount exceeds allowed balance');
         require(addr != address(0), 'address can not be empty');
         
-        address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
-        bool success = addr1.send(amount);
-        require(success == true, 'Transfer ether was failed'); 
+        bool success = IERC20Upgradeable(payToken).transfer(addr, amount); 
+        require(success == true, 'Transfer tokens were failed'); 
+        
     }
     
 }

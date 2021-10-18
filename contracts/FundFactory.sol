@@ -3,20 +3,26 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./interfaces/IFundContract.sol";
+import "./interfaces/IFundContractToken.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
    
     address contractInstance;
+    address contractTokenInstance;
+    
     mapping(address => address[]) list;
     event Produced(address caller, address addr);
   
-    function init(address _contractInstance) public initializer  {
+    function init(address _contractInstance, address _contractTokenInstance) public initializer  {
         __Ownable_init();
-        contractInstance = _contractInstance;
+        setAddresses(_contractInstance, _contractTokenInstance);
+    }
+    function setAddressInstances(address _contractInstance, address _contractTokenInstance) public onlyOwner() {
+        setAddresses(_contractInstance, _contractTokenInstance);
     }
     
-     /**
+    /**
      * @param _sellingToken address of erc20 token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
@@ -36,10 +42,53 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         nonReentrant
         returns(address) 
     {
-        
+        require(contractInstance != address(0), 'contractInstance is zero');
         address proxy = createClone(address(contractInstance));
         
         IFundContract(proxy).init(
+            _sellingToken,
+            _timestamps,
+            _prices,
+            _endTime,
+            _thresholds,
+            _bonuses
+        );
+
+        emit Produced(msg.sender, proxy);
+        list[msg.sender].push(proxy);
+        
+        OwnableUpgradeable(proxy).transferOwnership(msg.sender);
+        
+        return proxy;
+    }
+    
+    /**
+     * @param _payToken address of token's pay
+     * @param _sellingToken address of erc20 token
+     * @param _timestamps array of timestamps
+     * @param _prices price exchange
+     * @param _endTime after this time exchange stop
+     * @param _thresholds thresholds
+     * @param _bonuses bonuses
+     */
+    function produceToken(
+        address _payToken,
+        address _sellingToken,
+        uint256[] memory _timestamps,
+        uint256[] memory _prices,
+        uint256 _endTime,
+        uint256[] memory _thresholds,
+        uint256[] memory _bonuses
+    ) 
+        public 
+        nonReentrant
+        returns(address) 
+    {
+        require(contractTokenInstance != address(0), 'contractTokenInstance is zero');
+        address proxy = createClone(address(contractTokenInstance));
+        
+        IFundContractToken(proxy).init(
+            _payToken,
             _sellingToken,
             _timestamps,
             _prices,
@@ -77,4 +126,8 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         }
     }
     
+    function setAddresses(address _contractInstance, address _contractTokenInstance) internal {
+        contractInstance = _contractInstance;
+        contractTokenInstance = _contractTokenInstance;
+    }
 }

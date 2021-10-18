@@ -1,6 +1,8 @@
 const BigNumber = require('bignumber.js');
 const util = require('util');
 const FundContractMock = artifacts.require("FundContractMock");
+const FundContractToken = artifacts.require("FundContractToken");
+
 const Aggregator = artifacts.require("Aggregator");
 const ERC20Mintable = artifacts.require("ERC20Mintable");
 
@@ -40,8 +42,100 @@ contract('IntercoinContract', (accounts) => {
     const ethDenom = BigNumber(1_00000000);
       
     const amountETHSendToContract = 10*10**18; // 10ETH
+    const amountTokenSendToContract = 10*10**18; // 10token
     
-    it('common test', async () => {
+    it('common test(token)', async () => {
+        
+        var ERC20MintableInstance = await ERC20Mintable.new('t1','t1', {from: accountTen});
+        var Token2PayInstance = await ERC20Mintable.new('token2','token2', {from: accountTen});
+        
+        var FundContractTokenInstance = await FundContractToken.new();
+        await FundContractTokenInstance.init(
+            Token2PayInstance.address,
+            ERC20MintableInstance.address,
+            timestamps,
+            prices,
+            lastTime,
+            thresholds,
+            bonuses,
+            {from: accountTen}
+        );
+        
+        Token2PayInstance.mint(accountTwo, BigNumber(amountTokenSendToContract), {from: accountTen});
+        var ratio_TOKEN2_ITR = await FundContractTokenInstance.getTokenPrice({from: accountTen});
+    
+        // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
+        await truffleAssert.reverts(
+            FundContractTokenInstance.buy(BigNumber(amountTokenSendToContract), {from:accountTwo}), 
+            "ERC20: transfer amount exceeds allowance"
+        );
+        
+        await ERC20MintableInstance.mint(FundContractTokenInstance.address, BigNumber(1000000*1e18), {from: accountTen})
+
+        var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo);
+        // set approve before
+        await Token2PayInstance.approve(FundContractTokenInstance.address, BigNumber(amountTokenSendToContract), {from:accountTwo});
+        // send Token2 to Contract 
+        await FundContractTokenInstance.buy(BigNumber(amountTokenSendToContract), {from:accountTwo});
+
+        var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo);
+        var calculatedAmountOfTokens = (BigNumber(amountTokenSendToContract).times(ethDenom).div(BigNumber(ratio_TOKEN2_ITR)));
+        var accountTwoBalanceExpected = BigNumber(accountTwoBalanceBefore).plus(calculatedAmountOfTokens);
+
+        
+        assert.equal(
+            (accountTwoBalanceActual).toString(10),
+            (accountTwoBalanceExpected.integerValue(BigNumber.ROUND_DOWN)).toString(10),
+            'Balance are wrong'
+        );
+        
+        // removed. claim and withdraw can be available for anytime
+        // await truffleAssert.reverts(
+        //     FundContractInstance.claim(BigNumber(amountETHSendToContract).integerValue(), accountFourth, {from: accountTen}),
+        //     'claim available after `endTime` expired'
+        // );
+        // await truffleAssert.reverts(
+        //     FundContractInstance.withdraw(BigNumber(calculatedAmountOfTokens).integerValue(), accountFive, {from: accountTen}),
+        //     'withdraw available after `endTime` expired'
+        // );
+        //---------------------
+        
+        // console.log('1=',(await FundContractInstance.getExchangePriceUSD({from: accountTen})).toString());
+        // helper.advanceTimeAndBlock(60*24*60*60);
+        // console.log('2=',(await FundContractInstance.getExchangePriceUSD({from: accountTen})).toString());
+        // helper.advanceTimeAndBlock(60*24*60*60);
+        // console.log('3=',(await FundContractInstance.getExchangePriceUSD({from: accountTen})).toString());
+        
+        // go to end time
+        helper.advanceTimeAndBlock(lastTime-(new Date().getTime()));
+        
+        var accountFourthBalanceBefore = await Token2PayInstance.balanceOf(accountFourth);
+    
+        await FundContractTokenInstance.claim(BigNumber(amountETHSendToContract).integerValue(), accountFourth, {from: accountTen});
+        var accountFourthBalanceAfter = await Token2PayInstance.balanceOf(accountFourth);
+        assert.equal(
+            (
+                BigNumber(accountFourthBalanceAfter).minus(BigNumber(accountFourthBalanceBefore))
+            ).toString(10),
+            (amountETHSendToContract).toString(10),
+            'after claim balance are wrong'
+        );
+        
+        var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive);
+        await FundContractTokenInstance.withdraw(BigNumber(calculatedAmountOfTokens).integerValue(), accountFive, {from: accountTen});
+        var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive);
+        var accountFiveBalanceExpected = BigNumber(accountFiveBalanceBefore).plus(calculatedAmountOfTokens);
+
+        
+        assert.equal(
+            (accountFiveBalanceActual).toString(10),
+            (accountFiveBalanceExpected.integerValue()).toString(10),
+            'after withdraw balance are wrong'
+        );
+
+    });
+   
+    it('common test(eth)', async () => {
         var ERC20MintableInstance = await ERC20Mintable.new('t1','t1', {from: accountTen});
         var FundContractInstance = await FundContractMock.new();
         await FundContractInstance.init(
@@ -78,13 +172,13 @@ contract('IntercoinContract', (accounts) => {
         });
 
         var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo);
-        var calculatedAmountOfTokens = (BigNumber(amountETHSendToContract).times(ethDenom).div(BigNumber(ratio_ETH_ITR))).integerValue();
+        var calculatedAmountOfTokens = (BigNumber(amountETHSendToContract).times(ethDenom).div(BigNumber(ratio_ETH_ITR)));
         var accountTwoBalanceExpected = BigNumber(accountTwoBalanceBefore).plus(calculatedAmountOfTokens);
 
         
         assert.equal(
             (accountTwoBalanceActual).toString(10),
-            (accountTwoBalanceExpected.integerValue()).toString(10),
+            (accountTwoBalanceExpected.integerValue(BigNumber.ROUND_DOWN)).toString(10),
             'Balance are wrong'
         );
         
@@ -133,6 +227,7 @@ contract('IntercoinContract', (accounts) => {
         );
 
     });
+    
     
     it('test bonuses', async () => {
         // Example:
@@ -218,5 +313,5 @@ contract('IntercoinContract', (accounts) => {
         );
         
     });
-    
+
 });
