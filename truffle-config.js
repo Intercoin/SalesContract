@@ -25,11 +25,11 @@
 // const mnemonic = fs.readFileSync(".secret").toString().trim();
 
 require('dotenv').config();
+
 const HDWalletProvider = require("@truffle/hdwallet-provider");
 
-
 module.exports = {
-    
+
   /**
    * Networks define how you connect to your ethereum client and let you set the
    * defaults web3 uses to send transactions. If you don't specify one truffle
@@ -138,11 +138,20 @@ module.exports = {
     },
   },
   
-  plugins: ['truffle-plugin-verify'],
-  
+  plugins: ['truffle-plugin-verify', 'truffle-plugin-solhint', 'truffle-contract-size'],
+
   api_keys: {
     etherscan: process.env.etherscan_api_key,
     bscscan: process.env.bscscan_api_key
   },
-  
+  // Truffle DB is currently disabled by default; to enable it, change enabled: false to enabled: true
+  //
+  // Note: if you migrated your contracts prior to enabling this field in your Truffle project and want
+  // those previously migrated contracts available in the .db directory, you will need to run the following:
+  // $ truffle migrate --reset --compile-all
+
+  db: {
+    enabled: false
+  }
+
 };

@@ -187,6 +187,10 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
      * @param groupName group name
      */
     function getGroupBonus(string memory groupName) public view returns(uint256 bonus) {
+        return _getGroupBonus(groupName);
+    }
+    
+    function _getGroupBonus(string memory groupName) internal view returns(uint256 bonus) {
         bonus = 0;
         
         if (groups[groupName].exists == true) {
@@ -200,7 +204,6 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
             }
         }
     }
-    
     /**
      * calculate token's amount
      * @param amount amount in eth that should be converted in tokenAmount
@@ -297,7 +300,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
             participants[addr].totalAmount = participants[addr].totalAmount.add(ethAmount);    
             
             //// send tokens
-            uint256 groupBonus = getGroupBonus(groupName);
+            uint256 groupBonus = _getGroupBonus(groupName);
             address participantAddr;
             uint256 participantTotalBonusTokens;
             for (uint256 i = 0; i < groups[groupName].participants.length; i++) {
