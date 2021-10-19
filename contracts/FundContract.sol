@@ -64,7 +64,7 @@ contract FundContract is FundContractBase, IFundContract {
     /**
      * exchange eth to token via ratios ETH/<token>
      */
-    receive() external payable validGasPrice nonReentrant() {
+    receive() external payable virtual validGasPrice nonReentrant() {
         
        _exchange(msg.value);
         
@@ -82,6 +82,10 @@ contract FundContract is FundContractBase, IFundContract {
         address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
         bool success = addr1.send(amount);
         require(success == true, 'Transfer ether was failed'); 
+    }
+    
+    function getContractTotalAmount() internal virtual override returns(uint256) {
+        return address(this).balance;
     }
     
 }

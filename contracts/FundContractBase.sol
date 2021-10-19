@@ -165,7 +165,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
      * claim all eth to owner(sender)
      */
     function claimAll() public onlyOwner {
-        _claim(address(this).balance, _msgSender());
+        _claim(getContractTotalAmount(), _msgSender());
     }
     
     /**
@@ -329,4 +329,5 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
         }
     }
     
+    function getContractTotalAmount() internal virtual returns(uint256);
 }
