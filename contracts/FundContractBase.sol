@@ -57,7 +57,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
         uint256[] memory _bonuses
     ) 
         internal 
-        initializer
+        onlyInitializing
     {
         
         __Ownable_init();
