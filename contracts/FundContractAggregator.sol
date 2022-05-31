@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 import "./FundContract.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "@uniswap/lib/contracts/libraries/FixedPoint.sol";
+import "./libs/FixedPoint.sol";
 
 contract FundContractAggregator is FundContract {
     using FixedPoint for *;

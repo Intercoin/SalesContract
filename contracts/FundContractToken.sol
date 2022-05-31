@@ -46,7 +46,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         address _payToken
     ) 
         internal 
-        initializer
+        onlyInitializing
     {
         
         require(_payToken != address(0), 'FundContractToken: _payToken can not be zero');

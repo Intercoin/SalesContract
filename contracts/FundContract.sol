@@ -47,7 +47,7 @@ contract FundContract is FundContractBase, IFundContract {
         uint256[] memory _bonuses
     ) 
         internal 
-        initializer
+        onlyInitializing
     {
         
         __FundContractBase__init(
