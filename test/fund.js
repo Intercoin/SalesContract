@@ -257,13 +257,24 @@ describe("Community", function () {
  
     
     it('test bonuses', async () => {
+        // make snapshot before time manipulations
+        let snapId = await ethers.provider.send('evm_snapshot', []);
+        
         // Example:
         //     thresholds = [10000, 25000, 50000]
         //     bonuses = [0.1, 0.2, 0.5]
         //     First person contributed $10,000 and got 0.1 bonus which is $1,000
         //     Second person in same group contributed $20,000 so total of group if $30,000 and so second person gets 20% of $20,000 = $4000 while first person gets 10% of $10,000 which is another $1,000.
         
-        
+        let tmp;
+        tmp = await ethers.provider.send("eth_blockNumber",[]);
+        tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+        let currentBlockTime = parseInt(tmp.timestamp);
+
+        // go to end time
+        await ethers.provider.send('evm_increaseTime', [parseInt(timestamps[timestamps.length]-currentBlockTime+10)]);
+        await ethers.provider.send('evm_mine');
+
         var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
         var AggregatorInstance = await AggregatorF.connect(owner).deploy();
@@ -310,22 +321,23 @@ describe("Community", function () {
         var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
         
         var base = ethAmount1.mul(ethDenom).div(ratio_ETH_ITR);
-        
+
         // assert.equal(
         //     BigNumber(accountOneBalanceMiddle).toFixed(0),
         //     BigNumber(base.plus(base.times(BigNumber(0.1)))).toFixed(0),
         //     'accountOneBalanceMiddle wrong'
         // );
-        expect(accountOneBalanceMiddle).to.be.eq(base.add(base.div(10)));
+        expect(accountOneBalanceMiddle).to.be.eq(base.add(base.mul(10).div(100)));
         
         // assert.equal(
         //     BigNumber(accountOneBalanceAfter).toFixed(0),
         //     BigNumber(base.plus(base.times(BigNumber(0.2)))).toFixed(0),
         //     'accountOneBalanceAfter wrong'
         // );
-        expect(accountOneBalanceAfter).to.be.eq(base.add(base.div(20)));
+        expect(accountOneBalanceAfter).to.be.eq(base.add(base.mul(20).div(100)));
         
+        // restore snapshot
+        await ethers.provider.send('evm_revert', [snapId]);
     });
-    /*   
-*/
+    
 });
