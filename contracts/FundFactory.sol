@@ -1,25 +1,40 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "./interfaces/IFundContract.sol";
-import "./interfaces/IFundContractToken.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/proxy/Clones.sol";
+import "./FundContractToken.sol";
+import "./FundContract.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
-   
-    address contractInstance;
-    address contractTokenInstance;
+contract FundFactory is Ownable, ReentrancyGuard {
+    using Clones for address;
+
+    FundContract immutable contractInstance;
+    FundContractToken immutable contractTokenInstance;
     
-    mapping(address => address[]) list;
-    event Produced(address caller, address addr);
+    address[] public instances;
+    event InstanceCreated(address instance, uint instancesCount);
   
-    function init(address _contractInstance, address _contractTokenInstance) public initializer  {
-        __Ownable_init();
-        setAddresses(_contractInstance, _contractTokenInstance);
+    constructor() {
+        contractInstance = new FundContract();
+        contractTokenInstance = new FundContractToken();
     }
-    function setAddressInstances(address _contractInstance, address _contractTokenInstance) public onlyOwner() {
-        setAddresses(_contractInstance, _contractTokenInstance);
+    ////////////////////////////////////////////////////////////////////////
+    // external section ////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+
+    /**
+    * @dev view amount of created instances
+    * @return amount amount instances
+    * @custom:shortd view amount of created instances
+    */
+    function instancesCount()
+        external 
+        view 
+        returns (uint256 amount) 
+    {
+        amount = instances.length;
     }
     
     /**
@@ -42,10 +57,9 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         nonReentrant
         returns(address) 
     {
-        require(contractInstance != address(0), 'contractInstance is zero');
-        address proxy = createClone(address(contractInstance));
+        address instance = address(contractInstance).clone();
         
-        IFundContract(proxy).init(
+        IFundContract(instance).init(
             _sellingToken,
             _timestamps,
             _prices,
@@ -54,16 +68,16 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
             _bonuses
         );
 
-        emit Produced(msg.sender, proxy);
-        list[msg.sender].push(proxy);
+        instances.push(instance);
+        emit InstanceCreated(instance, instances.length);
         
-        OwnableUpgradeable(proxy).transferOwnership(msg.sender);
+        Ownable(instance).transferOwnership(msg.sender);
         
-        return proxy;
+        return instance;
     }
     
     /**
-     * @param _payToken address of token's pay
+     * @param _payToken address of token"s pay
      * @param _sellingToken address of erc20 token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
@@ -84,10 +98,10 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
         nonReentrant
         returns(address) 
     {
-        require(contractTokenInstance != address(0), 'contractTokenInstance is zero');
-        address proxy = createClone(address(contractTokenInstance));
+
+        address instance = address(contractTokenInstance).clone();
         
-        IFundContractToken(proxy).init(
+        IFundContractToken(instance).init(
             _payToken,
             _sellingToken,
             _timestamps,
@@ -97,37 +111,12 @@ contract FundFactory is OwnableUpgradeable, ReentrancyGuardUpgradeable {
             _bonuses
         );
 
-        emit Produced(msg.sender, proxy);
-        list[msg.sender].push(proxy);
+        instances.push(instance);
+        emit InstanceCreated(instance, instances.length);
         
-        OwnableUpgradeable(proxy).transferOwnership(msg.sender);
+        Ownable(instance).transferOwnership(msg.sender);
         
-        return proxy;
+        return instance;
     }
     
-    function producedList(
-        address sender
-    )
-        public 
-        view
-        returns(address[] memory)
-    {
-        return list[sender];
-    }
-    
-    function createClone(address target) internal returns (address result) {
-        bytes20 targetBytes = bytes20(target);
-        assembly {
-            let clone := mload(0x40)
-            mstore(clone, 0x3d602d80600a3d3981f3363d3d373d3d3d363d73000000000000000000000000)
-            mstore(add(clone, 0x14), targetBytes)
-            mstore(add(clone, 0x28), 0x5af43d82803e903d91602b57fd5bf30000000000000000000000000000000000)
-            result := create(0, clone, 0x37)
-        }
-    }
-    
-    function setAddresses(address _contractInstance, address _contractTokenInstance) internal {
-        contractInstance = _contractInstance;
-        contractTokenInstance = _contractTokenInstance;
-    }
 }
