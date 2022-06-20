@@ -2,14 +2,12 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import "./access/TrustedForwarder.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "./IntercoinTrait.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgradeable, IntercoinTrait {
-    using SafeMathUpgradeable for uint256;
+abstract contract FundContractBase is TrustedForwarder, ReentrancyGuardUpgradeable, IntercoinTrait {
     
     address internal sellingToken;
     uint256[] internal timestamps;
@@ -60,7 +58,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
         onlyInitializing
     {
         
-        __Ownable_init();
+        __TrustedForwarder_init();
         __ReentrancyGuard_init();
         
         require(_sellingToken != address(0), 'FundContract: _sellingToken can not be zero');
@@ -210,7 +208,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
      * @param price token price
      */
     function _getTokenAmount(uint256 amount, uint256 price) internal pure returns (uint256) {
-        return (amount).mul(priceDenom).div(price);
+        return amount * priceDenom / price;
     }
     
     /**
@@ -296,8 +294,8 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
             
             string memory groupName = participants[addr].groupName;
             
-            groups[groupName].totalAmount = groups[groupName].totalAmount.add(ethAmount);
-            participants[addr].totalAmount = participants[addr].totalAmount.add(ethAmount);    
+            groups[groupName].totalAmount +=  ethAmount;
+            participants[addr].totalAmount += ethAmount;    
             
             //// send tokens
             uint256 groupBonus = _getGroupBonus(groupName);
@@ -309,14 +307,10 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
                 participantTotalBonusTokens = _getTokenAmount(
                                                                 participants[participantAddr].totalAmount, 
                                                                 tokenPrice
-                                                            ).
-                                                            mul(groupBonus).
-                                                            div(1e2);
+                                                            ) * groupBonus / 1e2;
 
                 if (participantTotalBonusTokens > participants[participantAddr].contributed) {
-                    uint256 amount2Send = participantTotalBonusTokens.sub(
-                        participants[participantAddr].contributed
-                    );
+                    uint256 amount2Send = participantTotalBonusTokens - participants[participantAddr].contributed;
                     participants[participantAddr].contributed = participantTotalBonusTokens;
                   
                     _sendTokens(amount2Send, participantAddr);
@@ -325,7 +319,7 @@ abstract contract FundContractBase is OwnableUpgradeable, ReentrancyGuardUpgrade
             }
                
         } else {
-            totalInvestedGroupOutside[addr] = totalInvestedGroupOutside[addr].add(ethAmount);    
+            totalInvestedGroupOutside[addr] += ethAmount;    
         }
     }
     
