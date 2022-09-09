@@ -36,42 +36,42 @@ module.exports = {
       url: kovanURL,
       chainId: 42,
       gas: 12000000,
-      accounts: {mnemonic: process.env.MNEMONIC},
+      accounts: [process.env.private_key],
       saveDeployments: true
     },
     goerli: {
       url: goerliURL,
       chainId: 5,
       gasPrice: 1000,
-      accounts: {mnemonic: process.env.MNEMONIC},
+      accounts: [process.env.private_key],
       saveDeployments: true
     },
     rinkeby: {
       url: rinkebyURL,
       chainId: 4,
       gasPrice: "auto",
-      accounts: {mnemonic: process.env.MNEMONIC},
+      accounts: [process.env.private_key],
       saveDeployments: true
     },
     bsc: {
       url: bscURL,
       chainId: 56,
       gasPrice: "auto",
-      accounts: {mnemonic: process.env.MNEMONIC},
+      accounts: [process.env.private_key],
       saveDeployments: true
     },
     matic: {
       url: maticURL,
       chainId: 137,
-      gasPrice: "auto",
-      accounts: {mnemonic: process.env.MNEMONIC},
+      //gasPrice: "auto",
+      accounts: [process.env.private_key],
       saveDeployments: true
     },
     mainnet: {
       url: mainnetURL,
       chainId: 1,
       gasPrice: 20000000000,
-      accounts: {mnemonic: process.env.MNEMONIC},
+      accounts: [process.env.private_key],
       saveDeployments: true
     }
   },
@@ -86,8 +86,8 @@ module.exports = {
     currency: "USD"
   },
   etherscan: {
-    //apiKey: process.env.MATIC_API_KEY
-    apiKey: process.env.ETHERSCAN_API_KEY
+    apiKey: process.env.MATIC_API_KEY
+    //apiKey: process.env.ETHERSCAN_API_KEY
   },
   solidity: {
     compilers: [

@@ -14,7 +14,7 @@ import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
 FACTORY CONTRACT
 ****************
 
-Although this code is available for viewing on GitHub, the general public is NOT given a license to freely deploy smart contracts based on this code, on any blockchains.
+Although this code is available for viewing on GitHub and here, the general public is NOT given a license to freely deploy smart contracts based on this code, on any blockchains.
 
 To prevent confusion and increase trust in the audited code bases of smart contracts we produce, we intend for there to be only ONE official Factory address on the blockchain producing the corresponding smart contracts, and we are going to point a blockchain domain name at it.
 
@@ -196,7 +196,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
     }
 
     /**
+     * @dev way to set prices in $. $ calculated via ratio from Pair USDCoin-WETH
      * @param _sellingToken address of erc20 token
+     * @param _token0 stable coin like USDT,USDC.
+     * @param _token1 Wrapped token. WETH, or WBNB for binance
      * @param _timestamps array of timestamps
      * @param _prices price exchange
      * @param _endTime after this time exchange stop

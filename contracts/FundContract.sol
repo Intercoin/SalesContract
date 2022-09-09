@@ -9,7 +9,7 @@ import "./FundContractBase.sol";
 TEMPLATE CONTRACT
 *****************
 
-Although this code is available for viewing on GitHub , the general public is NOT given a license to freely deploy smart contracts based on this code, on any blockchains.
+Although this code is available for viewing on GitHub and here, the general public is NOT given a license to freely deploy smart contracts based on this code, on any blockchains.
 
 To prevent confusion and increase trust in the audited code bases of smart contracts we produce, we intend for there to be only ONE official Factory address on the blockchain producing the corresponding smart contracts, and we are going to point a blockchain domain name at it.
 

@@ -52,6 +52,11 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
     
+    event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
+    event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
+    event Claimed(uint256 amount, address addr);
+    event Withdrawn(uint256 amount, address addr);
+
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
@@ -130,6 +135,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
         require(success == true, "Transfer tokens were failed"); 
         
+        emit Exchange(_msgSender(), inputAmount, amount2send);
         // bonus calculation
         _addBonus(
             _msgSender(), 
@@ -147,6 +153,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     function withdraw(uint256 amount, address addr) public onlyOwner {
         _sendTokens(amount, addr);
 
+        emit Withdrawn(amount, addr);
         _accountForOperation(
             OPERATION_WITHDRAW << OPERATION_SHIFT_BITS,
             uint256(uint160(addr)),
@@ -160,6 +167,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     function withdrawAll() public onlyOwner {
         uint256 amount = IERC20Upgradeable(sellingToken).balanceOf(address(this));
 
+        emit Withdrawn(amount, _msgSender());
         _sendTokens(amount, _msgSender());
 
         _accountForOperation(
@@ -175,7 +183,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      */
     function claim(uint256 amount, address addr) public onlyOwner {
         _claim(amount, addr);
-        
+        emit Claimed(amount, addr);
         _accountForOperation(
             OPERATION_CLAIM << OPERATION_SHIFT_BITS,
             uint256(uint160(addr)),
@@ -205,6 +213,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     function claimAll() public onlyOwner {
         uint256 amount = getContractTotalAmount();
         _claim(amount, _msgSender());
+
+        emit Claimed(amount, _msgSender());
 
         _accountForOperation(
             OPERATION_CLAIM_ALL << OPERATION_SHIFT_BITS,
@@ -417,6 +427,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                     
                 }
             }
+
+            emit GroupBonusAdded(groupName, ethAmount, tokenPrice);
                
         } else {
             totalInvestedGroupOutside[addr] += ethAmount;    
