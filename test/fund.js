@@ -24,7 +24,7 @@ const ONE_ETH = ethers.utils.parseEther('1');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 
-describe("Community", function () {
+describe("Fund", function () {
     const accounts = waffle.provider.getWallets();
     
     // Setup accounts.
@@ -58,7 +58,11 @@ describe("Community", function () {
     var timestamps;
     var prices;
     var lastTime;
-    const thresholds = [TEN.mul(ONE_ETH), FIVE.mul(FIVE).mul(ONE_ETH), FIVE.mul(TEN).mul(ONE_ETH)];// count in eth (10/25/50)
+    const thresholds = [// count in eth (10/25/50)
+        TEN.mul(ONE_ETH), 
+        FIVE.mul(FIVE).mul(ONE_ETH), 
+        FIVE.mul(TEN).mul(ONE_ETH)
+    ];
     const bonuses = [TEN, TEN.mul(TWO), TEN.mul(FIVE)];  //[10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
     const ethDenom = HUNDRED.mul(MILLION); //BigNumber(1_00000000);
       
@@ -100,9 +104,56 @@ describe("Community", function () {
         //console.log(`afterEach("deploying"`);
     });
 
+    
+    describe("TrustedForwarder", function () {
+        var FundContractTokenInstance;
+        beforeEach("deploying", async() => {
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
+            
+            let tx = await FundFactory.connect(owner).produceToken(
+                Token2PayInstance.address,
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses
+            );
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            FundContractTokenInstance = await ethers.getContractAt("FundContractToken",instance);   
+        })
+        it("should be empty after init", async() => {
+            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+        });
+
+        it("should be setup by owner", async() => {
+            await expect(FundContractTokenInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
+            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
+        });
+        
+        it("should drop trusted forward if trusted forward become owner ", async() => {
+            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
+            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
+            await FundContractTokenInstance.connect(owner).transferOwnership(accountTwo.address);
+            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+        });
+
+        it("shouldnt become owner and trusted forwarder", async() => {
+            await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CAN_NOT_BE_OWNER");
+        });
+        
+    });
+
     for (const trustedForwardMode of [false,trustedForwarder]) {
 
-    describe(`${trustedForwardMode ? '[trusted forwarder]' : ''} tests`, function () {  
+    describe(`${trustedForwardMode ? '[with trusted forwarder]' : ''} tests`, function () {  
         
         it('common test(token)', async () => {
 
@@ -317,51 +368,6 @@ describe("Community", function () {
     });
 
     
-    describe("TrustedForwarder", function () {
-        var FundContractTokenInstance;
-        beforeEach("deploying", async() => {
-            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
-            
-            let tx = await FundFactory.connect(owner).produceToken(
-                Token2PayInstance.address,
-                ERC20MintableInstance.address,
-                timestamps,
-                prices,
-                lastTime,
-                thresholds,
-                bonuses
-            );
-
-            const rc = await tx.wait(); // 0ms, as tx is already confirmed
-            const event = rc.events.find(event => event.event === 'InstanceCreated');
-            const [instance,] = event.args;
-
-            FundContractTokenInstance = await ethers.getContractAt("FundContractToken",instance);   
-        })
-        it("should be empty after init", async() => {
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
-        });
-
-        it("should be setup by owner", async() => {
-            await expect(FundContractTokenInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Ownable: caller is not the owner");
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
-            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
-        });
-        
-        it("should drop trusted forward if trusted forward become owner ", async() => {
-            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
-            await FundContractTokenInstance.connect(owner).transferOwnership(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
-        });
-
-        it("shouldnt become owner and trusted forwarder", async() => {
-            await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CAN_NOT_BE_OWNER");
-        });
-        
-    });
 
     }
 
