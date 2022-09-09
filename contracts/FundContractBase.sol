@@ -5,9 +5,8 @@ pragma experimental ABIEncoderV2;
 import "./access/TrustedForwarder.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "./IntercoinTrait.sol";
 
-abstract contract FundContractBase is TrustedForwarder, ReentrancyGuardUpgradeable, IntercoinTrait {
+abstract contract FundContractBase is TrustedForwarder, ReentrancyGuardUpgradeable {
     
     address internal sellingToken;
     uint256[] internal timestamps;
