@@ -78,7 +78,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
      * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable  {
-        revert NotSupport();
+        revert NotSupported();
        //_exchange(msg.value);
     }
     

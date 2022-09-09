@@ -54,7 +54,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
-    error NotSupport();
+    error NotSupported();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");

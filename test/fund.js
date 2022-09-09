@@ -196,7 +196,8 @@ describe("Fund", function () {
     for (const trustedForwardMode of [false,trustedForwarder]) {
 
     describe(`${trustedForwardMode ? '[with trusted forwarder]' : ''} tests`, function () {  
-        
+         
+
         it('common test(token)', async () => {
 
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
@@ -221,6 +222,14 @@ describe("Fund", function () {
             if (trustedForwardMode) {
                 await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
+
+            // send ETH to Contract
+            await expect(accountTwo.sendTransaction({
+                to: FundContractTokenInstance.address, 
+                value: ONE_ETH,
+                gasLimit: 150000
+            })
+            ).to.be.revertedWith(`NotSupported()`);
 
             await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
             var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
