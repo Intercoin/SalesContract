@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../FundContract.sol";
+import "../FundContractToken.sol";
 
-contract FundContractMock is FundContract {
+contract FundContractTokenMock is FundContractToken {
     
     
     /**

@@ -143,7 +143,7 @@ contract FundContract is FundContractBase, IFundContract {
         require(success == true, "Transfer ether was failed"); 
     }
     
-    function getContractTotalAmount() internal virtual override returns(uint256) {
+    function getContractTotalAmount() internal view virtual override returns(uint256) {
         return address(this).balance;
     }
     

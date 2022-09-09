@@ -93,7 +93,7 @@ describe("Fund", function () {
         lastTime = parseInt(blockTime)+(8*timePeriod);
 
         FundContractMockF = await ethers.getContractFactory("FundContractMock");    
-        FundContractTokenF = await ethers.getContractFactory("FundContractToken");
+        FundContractTokenF = await ethers.getContractFactory("FundContractTokenMock");
         FundContractAggregatorF = await ethers.getContractFactory("FundContractAggregator");
 
         ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
@@ -216,7 +216,7 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            FundContractTokenInstance = await ethers.getContractAt("FundContractToken",instance);   
+            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
 
             if (trustedForwardMode) {
                 await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
@@ -251,13 +251,39 @@ describe("Fund", function () {
             await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
             await ethers.provider.send('evm_mine');
 
+            
+
+            let tmpSnapId;
+            //---------------------------------
+            // Make claim to accountFourth
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
             var accountFourthBalanceBefore = await Token2PayInstance.balanceOf(accountFourth.address);
-        
             await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
             var accountFourthBalanceAfter = await Token2PayInstance.balanceOf(accountFourth.address);
-
             expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
-            
+
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+            //---------------------------------end
+            //---------------------------------
+            // Make claimAll
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
+            var accountOwnerBalanceBefore = await Token2PayInstance.balanceOf(owner.address);
+            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll()', []);
+            var accountOwnerBalanceAfter = await Token2PayInstance.balanceOf(owner.address);
+            expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore)).to.be.eq(amountETHHoldOnContract);
+
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+            //---------------------------------end
+
             var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
             await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
             var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);
@@ -271,6 +297,7 @@ describe("Fund", function () {
 
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
+            let txFee;
             let tx = await FundFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
@@ -280,9 +307,9 @@ describe("Fund", function () {
                 bonuses,
             );
 
-            const rc = await tx.wait(); // 0ms, as tx is already confirmed
-            const event = rc.events.find(event => event.event === 'InstanceCreated');
-            const [instance,] = event.args;
+            let rc = await tx.wait(); // 0ms, as tx is already confirmed
+            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let [instance,] = event.args;
 
             var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
 
@@ -324,14 +351,39 @@ describe("Fund", function () {
             await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
             await ethers.provider.send('evm_mine');
             
-            var accountFourthBalanceBefore = (await ethers.provider.getBalance(accountFourth.address));
-                
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
-            
-            var accountFourthBalanceAfter = (await ethers.provider.getBalance(accountFourth.address));
+            let tmpSnapId;
+            //---------------------------------
+            // Make claim to accountFourth
 
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
+            var accountFourthBalanceBefore = (await ethers.provider.getBalance(accountFourth.address));
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
+            var accountFourthBalanceAfter = (await ethers.provider.getBalance(accountFourth.address));
             expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
             
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+            //---------------------------------end
+            //---------------------------------
+            // Make claimAll
+
+            var accountOwnerBalanceBefore = (await ethers.provider.getBalance(owner.address));
+            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
+            tx = await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll()', []);
+            rc = await tx.wait(); 
+            txFee = rc.cumulativeGasUsed.mul(rc.effectiveGasPrice);
+            if (trustedForwardMode) {
+                txFee = 0; // owner didn't spent anything, trusted forwarder payed fee for tx
+            }
+            var accountOwnerBalanceAfter = (await ethers.provider.getBalance(owner.address));
+            expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore).add(txFee)).to.be.eq(amountETHHoldOnContract);
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
+
             var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
             await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
             var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);

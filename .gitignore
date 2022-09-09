@@ -13,3 +13,5 @@ TODO.txt
 remix-compiler.config.js
 .DS_Store
 /bin
+coverage.json
+/coverage

@@ -157,7 +157,7 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
         // potentionally usd amount if user made swap from weth to usdc
         uint256 usdValue = getUSDFromETH(msg.value);
         _exchange(usdValue);
-        
+
         _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
             uint256(uint160(_msgSender())),
@@ -204,7 +204,7 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
         require(success == true, "Transfer ether was failed"); 
     }
     
-    function getContractTotalAmount() internal virtual override returns(uint256) {
+    function getContractTotalAmount() internal view virtual override returns(uint256) {
         return address(this).balance;
     }
  

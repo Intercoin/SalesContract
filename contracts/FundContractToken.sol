@@ -157,7 +157,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         
     }
     
-    function getContractTotalAmount() internal virtual override returns(uint256) {
+    function getContractTotalAmount() internal view virtual override returns(uint256) {
         return IERC20Upgradeable(payToken).balanceOf(address(this));
     }
     

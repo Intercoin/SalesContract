@@ -423,5 +423,5 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         }
     }
     
-    function getContractTotalAmount() internal virtual returns(uint256);
+    function getContractTotalAmount() internal view virtual returns(uint256);
 }
