@@ -23,6 +23,7 @@ const ONE_ETH = ethers.utils.parseEther('1');
 //const TOTALSUPPLY = ethers.utils.parseEther('1000000000');    
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
+const NO_COSTMANAGER = ZERO_ADDRESS;
 
 describe("Fund", function () {
     const accounts = waffle.provider.getWallets();
@@ -44,11 +45,15 @@ describe("Fund", function () {
     // setup useful vars
     var FundContractMockF;
     var FundContractTokenF;
+    var FundContractAggregatorF;
     var AggregatorF;
     var ERC20MintableF;
     var FundFactoryF
     
     var FundFactory;
+
+    var ReleaseManagerFactoryF;
+    var ReleaseManagerF;
 
     // var ControlContractFactory;
     // var ControlContract;
@@ -87,14 +92,51 @@ describe("Fund", function () {
         prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
         lastTime = parseInt(blockTime)+(8*timePeriod);
 
-        FundContractTokenF = await ethers.getContractFactory("FundContractToken");    
-        ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
         FundContractMockF = await ethers.getContractFactory("FundContractMock");    
+        FundContractTokenF = await ethers.getContractFactory("FundContractToken");
+        FundContractAggregatorF = await ethers.getContractFactory("FundContractAggregator");
+
+        ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
+        
         AggregatorF = await ethers.getContractFactory("Aggregator");    
 
         FundFactoryF = await ethers.getContractFactory("FundFactory");
 
-        FundFactory = await FundFactoryF.connect(owner).deploy();
+        ReleaseManagerFactoryF= await ethers.getContractFactory("MockReleaseManagerFactory")
+        ReleaseManagerF = await ethers.getContractFactory("MockReleaseManager");
+        let implementationReleaseManager    = await ReleaseManagerF.deploy();
+        let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.address);
+        let tx,rc,event,instance,instancesCount;
+        //
+        tx = await releaseManagerFactory.connect(owner).produce();
+        rc = await tx.wait(); // 0ms, as tx is already confirmed
+        event = rc.events.find(event => event.event === 'InstanceProduced');
+        [instance, instancesCount] = event.args;
+        let releaseManager = await ethers.getContractAt("MockReleaseManager",instance);
+
+        let fundContractInstance = await FundContractMockF.deploy();
+        let fundContractTokenInstance = await FundContractTokenF.deploy();
+        let fundContractAggregatorInstance = await FundContractAggregatorF.deploy();
+
+        FundFactory = await FundFactoryF.connect(owner).deploy(
+            fundContractInstance.address,
+            fundContractTokenInstance.address,
+            fundContractAggregatorInstance.address,
+            NO_COSTMANAGER
+        );
+
+        // 
+        const factoriesList = [FundFactory.address];
+        const factoryInfo = [
+            [
+                1,//uint8 factoryIndex; 
+                1,//uint16 releaseTag; 
+                "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
+            ]
+        ]
+        await FundFactory.connect(owner).registerReleaseManager(releaseManager.address);
+        await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
+
 
     });
     
@@ -146,7 +188,7 @@ describe("Fund", function () {
         });
 
         it("shouldnt become owner and trusted forwarder", async() => {
-            await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith("FORWARDER_CAN_NOT_BE_OWNER");
+            await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith(`ForwarderCanNotBeOwner()`);
         });
         
     });
@@ -299,7 +341,9 @@ describe("Fund", function () {
 
         });
     
-        
+        // usdt eth 
+        // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
+        // 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
         it('test bonuses', async () => {
             
             // Example:
@@ -307,13 +351,10 @@ describe("Fund", function () {
             //     bonuses = [0.1, 0.2, 0.5]
             //     First person contributed $10,000 and got 0.1 bonus which is $1,000
             //     Second person in same group contributed $20,000 so total of group if $30,000 and so second person gets 20% of $20,000 = $4000 while first person gets 10% of $10,000 which is another $1,000.
-            
+    
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
-            var AggregatorInstance = await AggregatorF.connect(owner).deploy();
-            var FundContractInstance = await FundContractMockF.connect(owner).deploy();
-            
-            await FundContractInstance.connect(owner).init(
+            let tx = await FundFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -322,11 +363,15 @@ describe("Fund", function () {
                 bonuses,
             );
 
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+
             if (trustedForwardMode) {
                 await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
-
-            
 
             var ratio_ETH_ITR = await FundContractInstance.getTokenPrice();
             
