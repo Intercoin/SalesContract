@@ -79,9 +79,9 @@ All disputes related to this agreement shall be governed by and interpreted in a
 contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, ReleaseManagerHelper {
     using Clones for address;
 
-    address immutable fundContractImplementation;
-    address immutable fundContractTokenImplementation;
-    address immutable fundContractAggregatorImplementation;
+    address public immutable fundContractImplementation;
+    address public immutable fundContractTokenImplementation;
+    address public immutable fundContractAggregatorImplementation;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
