@@ -13,7 +13,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     address internal sellingToken;
     uint256[] internal timestamps;
     uint256[] internal prices;
-    uint256 internal endTime;
+    uint256 public endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
