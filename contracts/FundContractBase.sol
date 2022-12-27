@@ -14,7 +14,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] public timestamps;
     uint256[] public prices;
     uint256 public endTime;
-    
+
+    bool public useWhitelist;
+
     uint256 internal constant maxGasPrice = 1*10**18; 
 
     uint256 internal constant priceDenom = 100000000;//1*10**8;
@@ -48,6 +50,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     mapping(string => Group) groups;
     mapping(address => Participant) participants;
     mapping(address => uint256) totalInvestedGroupOutside;
+    mapping(address => bool) public whitelist;
     
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
@@ -60,48 +63,37 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
+    error WhitelistError();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
         _;
     } 
-    
-    function __FundContractBase__init(
-        address _sellingToken,
-        uint256[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
-        address _costManager
-    ) 
-        internal 
-        onlyInitializing
-    {
-        
-        __CostManagerHelper_init(_msgSender());
-        _setCostManager(_costManager);
 
-        __Ownable_init();
-        __ReentrancyGuard_init();
-        
-        require(_sellingToken != address(0), "FundContract: _sellingToken can not be zero");
-        
-        sellingToken = _sellingToken;
-        timestamps = _timestamps;
-        prices = _prices;
-        endTime = _endTime;
-        thresholds = _thresholds;
-        bonuses = _bonuses;
-        
+    function whitelistAdd(
+        address account
+    ) 
+        external
+        onlyOwner
+    {
+        whitelist[account] = true;
     }
-    
+
+    function whitelistRremove(
+        address account
+    ) 
+        external
+        onlyOwner
+    {
+        delete whitelist[account];
+    }
+
     /**
      * data which contract was initialized
      */
     function getConfig(
     ) 
-        public 
+        external 
         view 
         returns ( 
             address _sellingToken, 
@@ -118,31 +110,6 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _endTime = endTime;
         _thresholds = thresholds;
         _bonuses = bonuses;
-    }
-    
-    
-    function _exchange(uint256 inputAmount) internal {
-        require(endTime > block.timestamp, "FundContract: Exchange time is over");
-        
-        uint256 tokenPrice = getTokenPrice();
-        
-        uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
-        require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
-                                
-        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
-        
-        bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
-        require(success == true, "Transfer tokens were failed"); 
-        
-        emit Exchange(_msgSender(), inputAmount, amount2send);
-        // bonus calculation
-        _addBonus(
-            _msgSender(), 
-            (inputAmount),
-            tokenPrice
-        );
-        
     }
     
     /**
@@ -286,6 +253,68 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
+    
+    function __FundContractBase__init(
+        address _sellingToken,
+        uint256[] memory _timestamps,
+        uint256[] memory _prices,
+        uint256 _endTime,
+        uint256[] memory _thresholds,
+        uint256[] memory _bonuses,
+        bool _useWhitelist,
+        address _costManager
+    ) 
+        internal 
+        onlyInitializing
+    {
+        
+        __CostManagerHelper_init(_msgSender());
+        _setCostManager(_costManager);
+
+        __Ownable_init();
+        __ReentrancyGuard_init();
+        
+        require(_sellingToken != address(0), "FundContract: _sellingToken can not be zero");
+        
+        sellingToken = _sellingToken;
+        timestamps = _timestamps;
+        prices = _prices;
+        endTime = _endTime;
+        thresholds = _thresholds;
+        bonuses = _bonuses;
+        useWhitelist = _useWhitelist;
+    }
+    
+    function _exchange(uint256 inputAmount) internal {
+        address sender = _msgSender();
+        
+        if (useWhitelist && !whitelist[sender]) {
+            revert WhitelistError();
+        }
+
+        require(endTime > block.timestamp, "FundContract: Exchange time is over");
+        
+        uint256 tokenPrice = getTokenPrice();
+        
+        uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
+        require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
+                                
+        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
+        
+        bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
+        require(success == true, "Transfer tokens were failed"); 
+        
+        emit Exchange(sender, inputAmount, amount2send);
+        // bonus calculation
+        _addBonus(
+            _msgSender(), 
+            (inputAmount),
+            tokenPrice
+        );
+        
+    }
+    
     function _msgSender(
     ) 
         internal 

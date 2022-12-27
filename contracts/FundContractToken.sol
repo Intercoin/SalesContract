@@ -101,6 +101,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         uint256 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        bool _useWhitelist,
         address _costManager,
         address _producedBy
     ) 
@@ -115,6 +116,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
             _endTime,
             _thresholds,
             _bonuses,
+            _useWhitelist,
             _costManager
         );
 
