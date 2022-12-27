@@ -197,13 +197,17 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal override {
-        
-        require(address(this).balance >= amount, "Amount exceeds allowed balance");
-        require(addr != address(0), "address can not be empty");
-        
+        if (address(this).balance < amount) {
+            revert AmountExceededAllowedBalance();
+        }
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
         address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
-        bool success = addr1.send(amount);
-        require(success == true, "Transfer ether was failed"); 
+        bool success = addr1.send(amount); 
+        if (!success) {
+            revert TransferTokensFailed();
+        }
     }
     
     function getContractTotalAmount() internal view virtual override returns(uint256) {

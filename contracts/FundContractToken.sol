@@ -74,6 +74,8 @@ All disputes related to this agreement shall be governed by and interpreted in a
 contract FundContractToken is FundContractBase, IFundContractToken {
     address internal payToken;
     
+    error PayTokenCanNotBeEmpty();
+    
     /**
      * exchange eth to token via ratios ETH/<token>
      */
@@ -127,14 +129,20 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         );
         
         // __FundContractToken__init(_payToken);
-        require(_payToken != address(0), "FundContractToken: _payToken can not be zero");
+        if (_payToken == address(0)) {
+            revert PayTokenCanNotBeEmpty();
+        }
+
         payToken = _payToken;
     }
     
     function buy(uint256 amount) public {
         
         bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            // ideally it unreachable(ERC20 token will triggered the same error) but it's validation must be 
+            revert TransferTokensFailed();
+        }
         
         _exchange(amount); 
 
@@ -150,15 +158,18 @@ contract FundContractToken is FundContractBase, IFundContractToken {
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal override {
-        
-        require(IERC20Upgradeable(payToken).balanceOf(address(this)) >= amount, "Amount exceeds allowed balance");
-        require(addr != address(0), "address can not be empty");
-        
+        if (IERC20Upgradeable(payToken).balanceOf(address(this)) < amount) {
+            revert AmountExceededAllowedBalance();
+        }
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
         bool success = IERC20Upgradeable(payToken).transfer(addr, amount); 
-        require(success == true, "Transfer tokens were failed"); 
-        
+        if (!success) {
+            revert TransferTokensFailed();
+        }
     }
-    
+
     function getContractTotalAmount() internal view virtual override returns(uint256) {
         return IERC20Upgradeable(payToken).balanceOf(address(this));
     }

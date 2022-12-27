@@ -64,9 +64,20 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error DeniedForForwarder();
     error NotSupported();
     error WhitelistError();
+    error TransferTokensFailed();
+    error AmountExceededAllowedBalance();
+    error AmountInvalid();
+    error AddressInvalid();
+    error GroupNameInvalid();
+    error TransactionGasPriceCanNotExceed(uint256 maxGasPrice);
+    error SellingTokenCanNotBeZero();
+    error ExchangeTimeIsOver(uint256 time);
+    error CantCalculateAmountOfTokens();
 
     modifier validGasPrice() {
-        require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
+        if (tx.gasprice > maxGasPrice) {
+            revert TransactionGasPriceCanNotExceed(maxGasPrice);
+        }
         _;
     } 
 
@@ -253,7 +264,6 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
-    
     function __FundContractBase__init(
         address _sellingToken,
         uint256[] memory _timestamps,
@@ -274,7 +284,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         __Ownable_init();
         __ReentrancyGuard_init();
         
-        require(_sellingToken != address(0), "FundContract: _sellingToken can not be zero");
+        if (_sellingToken == address(0)) {
+            revert SellingTokenCanNotBeZero();
+        }
         
         sellingToken = _sellingToken;
         timestamps = _timestamps;
@@ -292,18 +304,26 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             revert WhitelistError();
         }
 
-        require(endTime > block.timestamp, "FundContract: Exchange time is over");
+        if (endTime <= block.timestamp) {
+            revert ExchangeTimeIsOver(endTime);
+        }
         
         uint256 tokenPrice = getTokenPrice();
         
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
-        require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
+        if (amount2send == 0) {
+            revert CantCalculateAmountOfTokens();
+        }
                                 
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
+        if (tokenBalance < amount2send) {
+            revert AmountExceededAllowedBalance();
+        }
         
         bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            revert TransferTokensFailed();
+        }
         
         emit Exchange(sender, inputAmount, amount2send);
         // bonus calculation
@@ -370,15 +390,23 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param addr address to send
      */
     function _sendTokens(uint256 amount, address addr) internal {
-        
-        require(amount>0, "Amount can not be zero");
-        require(addr != address(0), "address can not be empty");
+
+        if (amount == 0) {
+            revert AmountInvalid();
+        }
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
         
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount, "Amount exceeds allowed balance");
+        if (tokenBalance < amount) {
+            revert AmountExceededAllowedBalance();
+        }
         
         bool success = IERC20Upgradeable(sellingToken).transfer(addr, amount);
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            revert TransferTokensFailed();
+        }
     }
     
     /**
@@ -386,11 +414,14 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param groupName group name. if does not exists it will be created
      */
     function _setGroup(address addr, string memory groupName) internal {
-        require(addr != address(0), "address can not be empty");
-        require(bytes(groupName).length != 0, "groupName can not be empty");
         
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
+        if (bytes(groupName).length == 0) {
+            revert GroupNameInvalid();
+        }
         uint256 tokenPrice = getTokenPrice();
-        
         if (participants[addr].exists == false) {
             participants[addr].exists = true;
             participants[addr].contributed = 0;
