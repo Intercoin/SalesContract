@@ -10,9 +10,9 @@ import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol"
 
 abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable {
 
-    address internal sellingToken;
-    uint256[] internal timestamps;
-    uint256[] internal prices;
+    address public sellingToken;
+    uint256[] public timestamps;
+    uint256[] public prices;
     uint256 public endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
