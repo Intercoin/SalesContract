@@ -22,6 +22,7 @@ interface IFundContractAggregator {
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager,
         address _producedBy
     ) external;

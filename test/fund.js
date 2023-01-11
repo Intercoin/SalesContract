@@ -74,6 +74,8 @@ describe("Fund", function () {
     const amountETHSendToContract = TEN.mul(ONE_ETH); // 10ETH
     const amountTokenSendToContract = TEN.mul(ONE_ETH); // 10token
 
+    const ownerCanWithdrawAnytime = 2;
+
     var blockTime;
     beforeEach("deploying", async() => {
 
@@ -160,7 +162,8 @@ describe("Fund", function () {
                 prices,
                 lastTime,
                 thresholds,
-                bonuses
+                bonuses,
+                ownerCanWithdrawAnytime
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -210,7 +213,8 @@ describe("Fund", function () {
                 prices,
                 lastTime,
                 thresholds,
-                bonuses
+                bonuses,
+                ownerCanWithdrawAnytime
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -314,6 +318,7 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
+                ownerCanWithdrawAnytime
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed

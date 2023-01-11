@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
-interface IFundContract {
+import "./IFundStructs.sol";
+interface IFundContract is IFundStructs {
     /**
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
@@ -18,6 +18,7 @@ interface IFundContract {
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager,
         address _producedBy
     ) external;

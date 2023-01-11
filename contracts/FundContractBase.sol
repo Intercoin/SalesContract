@@ -8,8 +8,9 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
 import "./interfaces/IPresale.sol";
+import "./interfaces/IFundStructs.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale {
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale, IFundStructs {
 
     address internal sellingToken;
     uint64[] internal timestamps;
@@ -52,7 +53,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
-    
+
+   
+    EnumWithdraw public withdrawOption;
+
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
     event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
     event Claimed(uint256 amount, address addr);
@@ -61,11 +65,26 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
+    error WithdrawDisabled();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
         _;
     } 
+
+    modifier validateWithdraw() {
+        _checkOwner();
+        if (
+            (withdrawOption == EnumWithdraw.never) ||
+            (withdrawOption == EnumWithdraw.afterEndTime)
+        ) {
+            revert WithdrawDisabled();
+        }
+
+        // (withdrawOption == EnumWithdraw.anytime)
+
+        _;
+    }
     
     function __FundContractBase__init(
         address _sellingToken,
@@ -74,6 +93,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint64 _endTs,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager
     ) 
         internal 
@@ -94,7 +114,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _endTime = _endTs;
         thresholds = _thresholds;
         bonuses = _bonuses;
-        
+        withdrawOption = _ownerCanWithdraw;
     }
     
     /**
@@ -149,12 +169,14 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         
     }
     
+
+    
     /**
      * withdraw some tokens to address
      * @param amount amount of tokens
      * @param addr address to send
      */
-    function withdraw(uint256 amount, address addr) public onlyOwner {
+    function withdraw(uint256 amount, address addr) public validateWithdraw {
         _sendTokens(amount, addr);
 
         emit Withdrawn(amount, addr);
@@ -168,7 +190,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     /**
      * withdraw all tokens to owner
      */
-    function withdrawAll() public onlyOwner {
+    function withdrawAll() public validateWithdraw {
         uint256 amount = IERC20Upgradeable(sellingToken).balanceOf(address(this));
 
         emit Withdrawn(amount, _msgSender());

@@ -89,6 +89,7 @@ contract FundContract is FundContractBase, IFundContract {
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager,
         address _producedBy
     ) 
@@ -104,6 +105,7 @@ contract FundContract is FundContractBase, IFundContract {
             _endTime,
             _thresholds,
             _bonuses,
+            _ownerCanWithdraw,
             _costManager
         );
 
