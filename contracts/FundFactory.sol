@@ -130,7 +130,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint256 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        bool _useWhitelist
     ) 
         public 
         nonReentrant
@@ -145,6 +146,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _useWhitelist,
             costManager,
             _msgSender()
         );
@@ -170,7 +172,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint256 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        bool _useWhitelist
     ) 
         public 
         nonReentrant
@@ -186,6 +189,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _useWhitelist,
             costManager,
             _msgSender()
         );
@@ -214,7 +218,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint256 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        bool _useWhitelist
     ) 
         public 
         nonReentrant
@@ -231,6 +236,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _useWhitelist,
             costManager,
             _msgSender()
         );
