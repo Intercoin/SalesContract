@@ -13,9 +13,9 @@ interface IFundContract {
      */
      function init(
         address _sellingToken,
-        uint256[] memory _timestamps,
+        uint64[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime,
+        uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
         address _costManager,

@@ -7,13 +7,14 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "./interfaces/IPresale.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable {
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale {
 
     address internal sellingToken;
-    uint256[] internal timestamps;
+    uint64[] internal timestamps;
     uint256[] internal prices;
-    uint256 public endTime;
+    uint64 public _endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
@@ -68,9 +69,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     
     function __FundContractBase__init(
         address _sellingToken,
-        uint256[] memory _timestamps,
+        uint64[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime,
+        uint64 _endTs,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
         address _costManager
@@ -90,7 +91,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         sellingToken = _sellingToken;
         timestamps = _timestamps;
         prices = _prices;
-        endTime = _endTime;
+        _endTime = _endTs;
         thresholds = _thresholds;
         bonuses = _bonuses;
         
@@ -105,9 +106,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         view 
         returns ( 
             address _sellingToken, 
-            uint256[] memory _timestamps,
+            uint64[] memory _timestamps,
             uint256[] memory _prices,
-            uint256 _endTime,
+            uint64 _endTs,
             uint256[] memory _thresholds,
             uint256[] memory _bonuses
         ) 
@@ -115,14 +116,17 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _sellingToken = sellingToken;
         _timestamps = timestamps;
         _prices = prices;
-        _endTime = endTime;
+        _endTs = _endTime;
         _thresholds = thresholds;
         _bonuses = bonuses;
     }
-    
+
+    function endTime() external view returns (uint64) {
+        return _endTime;
+    }
     
     function _exchange(uint256 inputAmount) internal {
-        require(endTime > block.timestamp, "FundContract: Exchange time is over");
+        require(_endTime > block.timestamp, "FundContract: Exchange time is over");
         
         uint256 tokenPrice = getTokenPrice();
         
