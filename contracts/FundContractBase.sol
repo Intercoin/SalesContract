@@ -76,7 +76,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _checkOwner();
         if (
             (withdrawOption == EnumWithdraw.never) ||
-            (withdrawOption == EnumWithdraw.afterEndTime)
+            (withdrawOption == EnumWithdraw.afterEndTime && block.timestamp <= _endTime)
         ) {
             revert WithdrawDisabled();
         }

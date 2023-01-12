@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
-interface IFundContractAggregator {
+import "./IFundStructs.sol";
+interface IFundContractAggregator is IFundStructs {
      /**
      * @param _sellingToken address of ITR token
      * @param _token0 USD Coin
@@ -11,6 +11,10 @@ interface IFundContractAggregator {
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      * @param _costManager costmanager address
      */
      function init(

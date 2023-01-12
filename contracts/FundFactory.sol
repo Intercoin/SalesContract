@@ -9,6 +9,9 @@ import "./interfaces/IFundContract.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@artman325/releasemanager/contracts/CostManagerFactoryHelper.sol";
 import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
+
+import "./interfaces/IFundStructs.sol";
+
 /**
 ****************
 FACTORY CONTRACT
@@ -123,6 +126,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      */
     function produce(
         address _sellingToken,
@@ -130,7 +137,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint64 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        IFundStructs.EnumWithdraw _ownerCanWithdraw
     ) 
         public 
         nonReentrant
@@ -145,6 +153,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _ownerCanWithdraw,
             costManager,
             _msgSender()
         );
@@ -162,6 +171,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      */
     function produceToken(
         address _payToken,
@@ -170,7 +183,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint64 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        IFundStructs.EnumWithdraw _ownerCanWithdraw
     ) 
         public 
         nonReentrant
@@ -186,6 +200,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _ownerCanWithdraw,
             costManager,
             _msgSender()
         );
@@ -205,6 +220,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      */
     function produceAggregator(
         address _sellingToken,
@@ -214,7 +233,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint256[] memory _prices,
         uint64 _endTime,
         uint256[] memory _thresholds,
-        uint256[] memory _bonuses
+        uint256[] memory _bonuses,
+        IFundStructs.EnumWithdraw _ownerCanWithdraw
     ) 
         public 
         nonReentrant
@@ -231,6 +251,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _endTime,
             _thresholds,
             _bonuses,
+            _ownerCanWithdraw,
             costManager,
             _msgSender()
         );
