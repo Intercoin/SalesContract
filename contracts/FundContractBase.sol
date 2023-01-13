@@ -7,13 +7,15 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "./interfaces/IPresale.sol";
+import "./interfaces/IFundStructs.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable {
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale, IFundStructs {
 
     address internal sellingToken;
-    uint256[] internal timestamps;
+    uint64[] internal timestamps;
     uint256[] internal prices;
-    uint256 public endTime;
+    uint64 public _endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
@@ -51,7 +53,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
-    
+
+   
+    EnumWithdraw public withdrawOption;
+
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
     event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
     event Claimed(uint256 amount, address addr);
@@ -60,19 +65,35 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
+    error WithdrawDisabled();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
         _;
     } 
+
+    modifier validateWithdraw() {
+        _checkOwner();
+        if (
+            (withdrawOption == EnumWithdraw.never) ||
+            (withdrawOption == EnumWithdraw.afterEndTime && block.timestamp <= _endTime)
+        ) {
+            revert WithdrawDisabled();
+        }
+
+        // (withdrawOption == EnumWithdraw.anytime)
+
+        _;
+    }
     
     function __FundContractBase__init(
         address _sellingToken,
-        uint256[] memory _timestamps,
+        uint64[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime,
+        uint64 _endTs,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager
     ) 
         internal 
@@ -90,10 +111,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         sellingToken = _sellingToken;
         timestamps = _timestamps;
         prices = _prices;
-        endTime = _endTime;
+        _endTime = _endTs;
         thresholds = _thresholds;
         bonuses = _bonuses;
-        
+        withdrawOption = _ownerCanWithdraw;
     }
     
     /**
@@ -105,9 +126,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         view 
         returns ( 
             address _sellingToken, 
-            uint256[] memory _timestamps,
+            uint64[] memory _timestamps,
             uint256[] memory _prices,
-            uint256 _endTime,
+            uint64 _endTs,
             uint256[] memory _thresholds,
             uint256[] memory _bonuses
         ) 
@@ -115,14 +136,17 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _sellingToken = sellingToken;
         _timestamps = timestamps;
         _prices = prices;
-        _endTime = endTime;
+        _endTs = _endTime;
         _thresholds = thresholds;
         _bonuses = bonuses;
     }
-    
+
+    function endTime() external view returns (uint64) {
+        return _endTime;
+    }
     
     function _exchange(uint256 inputAmount) internal {
-        require(endTime > block.timestamp, "FundContract: Exchange time is over");
+        require(_endTime > block.timestamp, "FundContract: Exchange time is over");
         
         uint256 tokenPrice = getTokenPrice();
         
@@ -145,12 +169,14 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         
     }
     
+
+    
     /**
      * withdraw some tokens to address
      * @param amount amount of tokens
      * @param addr address to send
      */
-    function withdraw(uint256 amount, address addr) public onlyOwner {
+    function withdraw(uint256 amount, address addr) public validateWithdraw {
         _sendTokens(amount, addr);
 
         emit Withdrawn(amount, addr);
@@ -164,7 +190,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     /**
      * withdraw all tokens to owner
      */
-    function withdrawAll() public onlyOwner {
+    function withdrawAll() public validateWithdraw {
         uint256 amount = IERC20Upgradeable(sellingToken).balanceOf(address(this));
 
         emit Withdrawn(amount, _msgSender());

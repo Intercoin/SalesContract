@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-
-interface IFundContract {
+import "./IFundStructs.sol";
+interface IFundContract is IFundStructs {
     /**
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
@@ -9,15 +9,20 @@ interface IFundContract {
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      * @param _costManager costmanager address
      */
      function init(
         address _sellingToken,
-        uint256[] memory _timestamps,
+        uint64[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime,
+        uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager,
         address _producedBy
     ) external;

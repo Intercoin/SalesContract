@@ -94,17 +94,22 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
+     * @param _ownerCanWithdraw enum option where:
+     *  0 -owner can not withdraw tokens
+     *  1 -owner can withdraw tokens only after endTimePassed
+     *  2 -owner can withdraw tokens anytime
      * @param _costManager costmanager address
      */
      function init(
         address _sellingToken,
         address _token0,
         address _token1,
-        uint256[] memory _timestamps,
+        uint64[] memory _timestamps,
         uint256[] memory _prices,
-        uint256 _endTime,
+        uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
+        EnumWithdraw _ownerCanWithdraw,
         address _costManager,
         address _producedBy
     ) 
@@ -120,6 +125,7 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
             _endTime,
             _thresholds,
             _bonuses,
+            _ownerCanWithdraw,
             _costManager
         );
 

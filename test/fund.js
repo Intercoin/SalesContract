@@ -25,6 +25,12 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const NO_COSTMANAGER = ZERO_ADDRESS;
 
+const EnumWithdrawOption = {
+    never: 0,
+    afterEndTime: 1,
+    anytime: 2
+}
+
 describe("Fund", function () {
     const accounts = waffle.provider.getWallets();
     
@@ -73,6 +79,8 @@ describe("Fund", function () {
       
     const amountETHSendToContract = TEN.mul(ONE_ETH); // 10ETH
     const amountTokenSendToContract = TEN.mul(ONE_ETH); // 10token
+
+    const ownerCanWithdrawAnytime = 2;
 
     var blockTime;
     beforeEach("deploying", async() => {
@@ -160,7 +168,8 @@ describe("Fund", function () {
                 prices,
                 lastTime,
                 thresholds,
-                bonuses
+                bonuses,
+                ownerCanWithdrawAnytime
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -190,7 +199,153 @@ describe("Fund", function () {
         it("shouldnt become owner and trusted forwarder", async() => {
             await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith(`ForwarderCanNotBeOwner()`);
         });
-        
+
+        it("shouldnt withdraw by owner if setup option `_ownerCanWithdraw` eq `never` ", async() => {
+
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+
+            let txFee;
+            let tx = await FundFactory.connect(owner).produce(
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.never //ownerCanWithdrawAnytime
+            );
+
+            let rc = await tx.wait(); // 0ms, as tx is already confirmed
+            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = parseInt(tmp.timestamp);
+
+            // send ETH to Contract, but it should be revert with message "Amount exceeds allowed balance"
+            const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
+            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address,amountSellingTokensSendToContract);
+
+            //
+            await expect(
+                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+            ).to.be.revertedWith("WithdrawDisabled()");
+            
+            // go to end time
+            await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
+            await ethers.provider.send('evm_mine');
+
+            await expect(
+                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+            ).to.be.revertedWith("WithdrawDisabled()");
+
+
+        });
+
+        it("should withdraw by owner after endTime is passed if setup option `_ownerCanWithdraw` eq `afterEndTime` ", async() => {
+
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+
+            let txFee;
+            let tx = await FundFactory.connect(owner).produce(
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.afterEndTime //ownerCanWithdrawAnytime
+            );
+
+            let rc = await tx.wait(); // 0ms, as tx is already confirmed
+            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = parseInt(tmp.timestamp);
+
+            const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
+            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, amountSellingTokensSendToContract);
+
+            //
+            await expect(
+                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+            ).to.be.revertedWith("WithdrawDisabled()");
+            
+            // go to end time
+            await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
+            await ethers.provider.send('evm_mine');
+
+            let sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
+
+            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            let sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
+
+            expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
+
+
+
+        });
+
+        it("should withdraw by owner anytime if setup option `_ownerCanWithdraw` eq `anytime` ", async() => {
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+
+            let txFee;
+            let tx = await FundFactory.connect(owner).produce(
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.anytime //ownerCanWithdrawAnytime
+            );
+
+            let rc = await tx.wait(); // 0ms, as tx is already confirmed
+            let event = rc.events.find(event => event.event === 'InstanceCreated');
+            let [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = parseInt(tmp.timestamp);
+
+            const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
+            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, amountSellingTokensSendToContract);
+
+
+            let sellingTokensBalanceBefore,sellingTokensBalanceAfter,tmpSnapId;
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+            sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
+            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
+            expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+
+            // or go to end time
+            await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
+            await ethers.provider.send('evm_mine');
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+            sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
+            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
+            expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+
+        });
     });
 
     for (const trustedForwardMode of [false,trustedForwarder]) {
@@ -210,7 +365,8 @@ describe("Fund", function () {
                 prices,
                 lastTime,
                 thresholds,
-                bonuses
+                bonuses,
+                ownerCanWithdrawAnytime
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -314,6 +470,7 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
+                ownerCanWithdrawAnytime
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -400,6 +557,8 @@ describe("Fund", function () {
 
             expect(accountFiveBalanceActual).to.be.eq(accountFiveBalanceExpected);
 
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
         });
     
         // usdt eth 
@@ -422,6 +581,7 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
+                ownerCanWithdrawAnytime
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
