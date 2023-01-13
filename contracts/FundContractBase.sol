@@ -7,14 +7,15 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "@artman325/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale, IFundStructs {
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
 
-    address internal sellingToken;
-    uint64[] internal timestamps;
-    uint256[] internal prices;
+    address public sellingToken;
+    uint64[] public timestamps;
+    uint256[] public prices;
     uint64 public _endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
@@ -54,18 +55,19 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
 
-   
     EnumWithdraw public withdrawOption;
 
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
     event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
     event Claimed(uint256 amount, address addr);
     event Withdrawn(uint256 amount, address addr);
+    
 
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
     error WithdrawDisabled();
+    error WhitelistError();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
@@ -94,6 +96,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
+        WhitelistStruct memory _whitelistData,
         address _costManager
     ) 
         internal 
@@ -115,6 +118,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         thresholds = _thresholds;
         bonuses = _bonuses;
         withdrawOption = _ownerCanWithdraw;
+
+        whitelistInit(_whitelistData);
     }
     
     /**
@@ -146,6 +151,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
     
     function _exchange(uint256 inputAmount) internal {
+
+        address sender = _msgSender();
+
+        if (!whitelisted(sender)) { 
+            revert WhitelistError(); 
+        }
+
         require(_endTime > block.timestamp, "FundContract: Exchange time is over");
         
         uint256 tokenPrice = getTokenPrice();
@@ -156,13 +168,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
         
-        bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
+        bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
         require(success == true, "Transfer tokens were failed"); 
         
-        emit Exchange(_msgSender(), inputAmount, amount2send);
+        emit Exchange(sender, inputAmount, amount2send);
         // bonus calculation
         _addBonus(
-            _msgSender(), 
+            sender, 
             (inputAmount),
             tokenPrice
         );
@@ -201,6 +213,26 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             uint256(uint160(_msgSender())),
             amount
         );
+    }
+
+    /**
+    * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
+    */
+    function whitelistAdd(address account) public onlyOwner {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
+        }
+        _whitelistAdd(account);
+    }
+
+    /**
+    * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
+    */
+    function whitelistRemove(address account) public onlyOwner {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
+        }
+        _whitelistRemove(account);
     }
     
     /**

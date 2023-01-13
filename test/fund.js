@@ -31,6 +31,13 @@ const EnumWithdrawOption = {
     anytime: 2
 }
 
+const DontUseWhitelist = [
+    ZERO_ADDRESS, // 
+    "0x00000000", // bytes4
+    0, 
+    false // use whitelist
+];
+
 describe("Fund", function () {
     const accounts = waffle.provider.getWallets();
     
@@ -79,8 +86,6 @@ describe("Fund", function () {
       
     const amountETHSendToContract = TEN.mul(ONE_ETH); // 10ETH
     const amountTokenSendToContract = TEN.mul(ONE_ETH); // 10token
-
-    const ownerCanWithdrawAnytime = 2;
 
     var blockTime;
     beforeEach("deploying", async() => {
@@ -169,7 +174,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -212,7 +218,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.never //ownerCanWithdrawAnytime
+                EnumWithdrawOption.never, 
+                DontUseWhitelist
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -257,7 +264,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.afterEndTime //ownerCanWithdrawAnytime
+                EnumWithdrawOption.afterEndTime, 
+                DontUseWhitelist
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -304,7 +312,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.anytime //ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -366,7 +375,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -470,7 +480,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -561,6 +572,181 @@ describe("Fund", function () {
             await ethers.provider.send('evm_revert', [tmpSnapId]);
         });
     
+    
+        it('common test(token) with Whitelist', async () => {
+            let MockWhitelistF = await ethers.getContractFactory("MockWhitelist");    
+            let MockWhitelist = await MockWhitelistF.deploy();
+            await MockWhitelist.setupSuccess(true);
+            const UseExternalWhitelist = [
+                MockWhitelist.address,
+                "0x00000000",
+                55,
+                true
+            ];
+
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
+            
+            let tx = await FundFactory.connect(owner).produceToken(
+                Token2PayInstance.address,
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.anytime,
+                UseExternalWhitelist
+            );
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
+
+            if (trustedForwardMode) {
+                await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            // send ETH to Contract
+            await expect(accountTwo.sendTransaction({
+                to: FundContractTokenInstance.address, 
+                value: ONE_ETH,
+                gasLimit: 150000
+            })
+            ).to.be.revertedWith(`NotSupported()`);
+
+            await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
+            var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
+
+            // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
+            
+            await ERC20MintableInstance.connect(owner).mint(FundContractTokenInstance.address, MILLION.mul(ONE_ETH));
+
+            var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            // set approve before
+            await Token2PayInstance.connect(accountTwo).approve(FundContractTokenInstance.address, amountTokenSendToContract);
+            // send Token2 to Contract 
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
+
+            var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var calculatedAmountOfTokens = amountTokenSendToContract.mul(ethDenom).div(ratio_TOKEN2_ITR);
+            var accountTwoBalanceExpected = accountTwoBalanceBefore.add(calculatedAmountOfTokens);
+
+            expect(accountTwoBalanceActual).to.be.eq(accountTwoBalanceExpected);
+
+            let tmp;
+            tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            currentBlockTime = parseInt(tmp.timestamp);
+
+            // go to end time
+            await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
+            await ethers.provider.send('evm_mine');
+
+            
+
+            let tmpSnapId;
+            //---------------------------------
+            // Make claim to accountFourth
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
+            var accountFourthBalanceBefore = await Token2PayInstance.balanceOf(accountFourth.address);
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
+            var accountFourthBalanceAfter = await Token2PayInstance.balanceOf(accountFourth.address);
+            expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
+
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+            //---------------------------------end
+            //---------------------------------
+            // Make claimAll
+
+            // make snapshot before time manipulations
+            tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
+
+            var accountOwnerBalanceBefore = await Token2PayInstance.balanceOf(owner.address);
+            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll()', []);
+            var accountOwnerBalanceAfter = await Token2PayInstance.balanceOf(owner.address);
+            expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore)).to.be.eq(amountETHHoldOnContract);
+
+            // restore snapshot
+            await ethers.provider.send('evm_revert', [tmpSnapId]);
+            //---------------------------------end
+
+            var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
+            var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);
+            var accountFiveBalanceExpected = accountFiveBalanceBefore.add(calculatedAmountOfTokens);
+
+            expect(accountFiveBalanceActual).to.be.eq(accountFiveBalanceExpected);
+
+        });
+
+        it('common test(token) with Bad Whitelist contract', async () => {
+            let MockWhitelistF = await ethers.getContractFactory("MockWhitelist");    
+            let MockWhitelist = await MockWhitelistF.deploy();
+            const UseExternalWhitelist = [
+                MockWhitelist.address,
+                "0x00000000",
+                55,
+                true
+            ];
+
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
+            
+            let tx = await FundFactory.connect(owner).produceToken(
+                Token2PayInstance.address,
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.anytime,
+                UseExternalWhitelist
+            );
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
+
+            if (trustedForwardMode) {
+                await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            // send ETH to Contract
+            await expect(accountTwo.sendTransaction({
+                to: FundContractTokenInstance.address, 
+                value: ONE_ETH,
+                gasLimit: 150000
+            })
+            ).to.be.revertedWith(`NotSupported()`);
+
+            await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
+            var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
+
+            // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
+            
+            await ERC20MintableInstance.connect(owner).mint(FundContractTokenInstance.address, MILLION.mul(ONE_ETH));
+
+            var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            // set approve before
+            await Token2PayInstance.connect(accountTwo).approve(FundContractTokenInstance.address, amountTokenSendToContract);
+            // send Token2 to Contract 
+            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "WhitelistError()");
+
+        });
+    
         // usdt eth 
         // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
         // 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
@@ -581,7 +767,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
