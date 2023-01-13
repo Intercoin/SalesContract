@@ -21,6 +21,7 @@ interface IFundContractAggregator is IFundStructs {
      *  address contractAddress;
 	 *	bytes4 method;
 	 *	uint8 role;
+     *  bool useWhitelist;
      * @param _costManager costmanager address
      */
      function init(

@@ -32,9 +32,10 @@ const EnumWithdrawOption = {
 }
 
 const DontUseWhitelist = [
-    ZERO_ADDRESS, // if address(0) - then we don't use whitelist 
+    ZERO_ADDRESS, // 
     "0x00000000", // bytes4
-    0 
+    0, 
+    false // use whitelist
 ];
 
 describe("Fund", function () {
@@ -579,7 +580,8 @@ describe("Fund", function () {
             const UseExternalWhitelist = [
                 MockWhitelist.address,
                 "0x00000000",
-                55
+                55,
+                true
             ];
 
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
@@ -692,7 +694,8 @@ describe("Fund", function () {
             const UseExternalWhitelist = [
                 MockWhitelist.address,
                 "0x00000000",
-                55
+                55,
+                true
             ];
 
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');

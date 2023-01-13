@@ -55,7 +55,6 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
 
-    bool public useWhitelist;
     EnumWithdraw public withdrawOption;
 
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
@@ -120,11 +119,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         bonuses = _bonuses;
         withdrawOption = _ownerCanWithdraw;
 
-        // better to use init in whitelist package but there are no such method so do it directly
-        whitelist.contractAddress = _whitelistData.contractAddress;
-        whitelist.method = _whitelistData.method;
-        whitelist.role = _whitelistData.role;
-        useWhitelist = whitelist.contractAddress == address(0) ? false : true;
+        whitelistInit(_whitelistData);
     }
     
     /**
@@ -159,7 +154,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
 
         address sender = _msgSender();
 
-        if (useWhitelist && !whitelisted(sender)) { 
+        if (!whitelisted(sender)) { 
             revert WhitelistError(); 
         }
 
