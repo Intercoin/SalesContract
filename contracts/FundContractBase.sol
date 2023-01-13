@@ -7,10 +7,11 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "@artman325/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, IPresale, IFundStructs {
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
 
     address internal sellingToken;
     uint64[] internal timestamps;
@@ -94,6 +95,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
+        WhitelistStruct memory _whitelistData,
         address _costManager
     ) 
         internal 
@@ -115,6 +117,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         thresholds = _thresholds;
         bonuses = _bonuses;
         withdrawOption = _ownerCanWithdraw;
+
+        // better to use init in whitelist package but there are no such method so do it directly
+        whitelist.contractAddress = _whitelistData.contractAddress;
+        whitelist.method = _whitelistData.method;
+        whitelist.role = _whitelistData.role;
+
     }
     
     /**

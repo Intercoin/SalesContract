@@ -130,6 +130,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
      *  2 -owner can withdraw tokens anytime
+     * @param _whitelistData whitelist data struct
+     *  address contractAddress;
+	 *	bytes4 method;
+	 *	uint8 role;
      */
     function produce(
         address _sellingToken,
@@ -138,7 +142,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw
+        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
@@ -154,6 +159,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _thresholds,
             _bonuses,
             _ownerCanWithdraw,
+            _whitelistData,
             costManager,
             _msgSender()
         );
@@ -175,6 +181,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
      *  2 -owner can withdraw tokens anytime
+     * @param _whitelistData whitelist data struct
+     *  address contractAddress;
+	 *	bytes4 method;
+	 *	uint8 role;
      */
     function produceToken(
         address _payToken,
@@ -184,7 +194,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw
+        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
@@ -201,6 +212,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _thresholds,
             _bonuses,
             _ownerCanWithdraw,
+            _whitelistData,
             costManager,
             _msgSender()
         );
@@ -224,6 +236,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
      *  2 -owner can withdraw tokens anytime
+     * @param _whitelistData whitelist data struct
+     *  address contractAddress;
+	 *	bytes4 method;
+	 *	uint8 role;
      */
     function produceAggregator(
         address _sellingToken,
@@ -234,7 +250,8 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw
+        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
@@ -252,6 +269,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _thresholds,
             _bonuses,
             _ownerCanWithdraw,
+            _whitelistData,
             costManager,
             _msgSender()
         );

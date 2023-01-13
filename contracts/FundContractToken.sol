@@ -95,6 +95,10 @@ contract FundContractToken is FundContractBase, IFundContractToken {
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
      *  2 -owner can withdraw tokens anytime
+     * @param _whitelistData whitelist data struct
+     *  address contractAddress;
+	 *	bytes4 method;
+	 *	uint8 role;
      * @param _costManager costmanager address
      */
      function init(
@@ -106,6 +110,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
+        WhitelistStruct memory _whitelistData,
         address _costManager,
         address _producedBy
     ) 
@@ -121,6 +126,7 @@ contract FundContractToken is FundContractBase, IFundContractToken {
             _thresholds,
             _bonuses,
             _ownerCanWithdraw,
+            _whitelistData,
             _costManager
         );
 

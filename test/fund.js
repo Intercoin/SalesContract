@@ -31,6 +31,12 @@ const EnumWithdrawOption = {
     anytime: 2
 }
 
+const UseWhitelistInternal = [
+    ZERO_ADDRESS,
+    "0x00000000", // bytes4
+    0 // if 0 - then we use internal whitelist 
+];
+
 describe("Fund", function () {
     const accounts = waffle.provider.getWallets();
     
@@ -79,8 +85,6 @@ describe("Fund", function () {
       
     const amountETHSendToContract = TEN.mul(ONE_ETH); // 10ETH
     const amountTokenSendToContract = TEN.mul(ONE_ETH); // 10token
-
-    const ownerCanWithdrawAnytime = 2;
 
     var blockTime;
     beforeEach("deploying", async() => {
@@ -169,7 +173,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                UseWhitelistInternal
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -212,7 +217,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.never //ownerCanWithdrawAnytime
+                EnumWithdrawOption.never, 
+                UseWhitelistInternal
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -257,7 +263,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.afterEndTime //ownerCanWithdrawAnytime
+                EnumWithdrawOption.afterEndTime, 
+                UseWhitelistInternal
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -304,7 +311,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                EnumWithdrawOption.anytime //ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                UseWhitelistInternal
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -366,7 +374,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                UseWhitelistInternal
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -470,7 +479,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                UseWhitelistInternal
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -581,7 +591,8 @@ describe("Fund", function () {
                 lastTime,
                 thresholds,
                 bonuses,
-                ownerCanWithdrawAnytime
+                EnumWithdrawOption.anytime,
+                UseWhitelistInternal
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
