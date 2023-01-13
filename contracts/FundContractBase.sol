@@ -13,9 +13,9 @@ import "./interfaces/IFundStructs.sol";
 
 abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
 
-    address internal sellingToken;
-    uint64[] internal timestamps;
-    uint256[] internal prices;
+    address public sellingToken;
+    uint64[] public timestamps;
+    uint256[] public prices;
     uint64 public _endTime;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
