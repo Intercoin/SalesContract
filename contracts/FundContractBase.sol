@@ -214,6 +214,26 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             amount
         );
     }
+
+    /**
+    * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
+    */
+    function whitelistAdd(address account) public onlyOwner {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
+        }
+        _whitelistAdd(account);
+    }
+
+    /**
+    * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
+    */
+    function whitelistRemove(address account) public onlyOwner {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
+        }
+        _whitelistRemove(account);
+    }
     
     /**
      * @param amount amount of eth
