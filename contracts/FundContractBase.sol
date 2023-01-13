@@ -55,18 +55,20 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
 
-   
+    bool public useWhitelist;
     EnumWithdraw public withdrawOption;
 
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
     event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
     event Claimed(uint256 amount, address addr);
     event Withdrawn(uint256 amount, address addr);
+    
 
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
     error WithdrawDisabled();
+    error WhitelistError();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
@@ -122,7 +124,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         whitelist.contractAddress = _whitelistData.contractAddress;
         whitelist.method = _whitelistData.method;
         whitelist.role = _whitelistData.role;
-
+        useWhitelist = whitelist.contractAddress == address(0) ? false : true;
     }
     
     /**
@@ -154,6 +156,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
     
     function _exchange(uint256 inputAmount) internal {
+
+        address sender = _msgSender();
+
+        if (useWhitelist && !whitelisted(sender)) { 
+            revert WhitelistError(); 
+        }
+
         require(_endTime > block.timestamp, "FundContract: Exchange time is over");
         
         uint256 tokenPrice = getTokenPrice();
@@ -164,13 +173,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
         
-        bool success = IERC20Upgradeable(sellingToken).transfer(_msgSender(), amount2send);
+        bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
         require(success == true, "Transfer tokens were failed"); 
         
-        emit Exchange(_msgSender(), inputAmount, amount2send);
+        emit Exchange(sender, inputAmount, amount2send);
         // bonus calculation
         _addBonus(
-            _msgSender(), 
+            sender, 
             (inputAmount),
             tokenPrice
         );
