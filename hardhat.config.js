@@ -25,11 +25,10 @@ module.exports = {
   networks: {
     hardhat: {
       allowUnlimitedContractSize: false,
-      gas: 12000000,
+      gasPrice: "auto",
       gasLimit: 22000000,
       forking: {
-        url: mainnetURL,
-        blockNumber: 13539017
+        url: mainnetURL
       }
     },
     kovan: {
@@ -86,8 +85,8 @@ module.exports = {
     currency: "USD"
   },
   etherscan: {
-    //apiKey: process.env.MATIC_API_KEY
-    apiKey: process.env.BSCSCAN_API_KEY
+    apiKey: process.env.MATIC_API_KEY
+    //apiKey: process.env.BSCSCAN_API_KEY
     //apiKey: process.env.ETHERSCAN_API_KEY
   },
   solidity: {

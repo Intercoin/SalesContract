@@ -135,7 +135,8 @@ describe("Fund", function () {
             fundContractInstance.address,
             fundContractTokenInstance.address,
             fundContractAggregatorInstance.address,
-            NO_COSTMANAGER
+            NO_COSTMANAGER,
+            releaseManager.address
         );
 
         // 
@@ -147,7 +148,7 @@ describe("Fund", function () {
                 "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
             ]
         ]
-        await FundFactory.connect(owner).registerReleaseManager(releaseManager.address);
+
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
 
 

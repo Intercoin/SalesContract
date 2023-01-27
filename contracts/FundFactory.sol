@@ -93,8 +93,10 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         address fundContractImpl,
         address fundContractTokenImpl,
         address fundContractAggregatorImpl,
-        address costManager
+        address costManager,
+        address releaseManager
     ) 
+        ReleaseManagerHelper(releaseManager)
         CostManagerFactoryHelper(costManager)
     {
         fundContractImplementation = fundContractImpl;
