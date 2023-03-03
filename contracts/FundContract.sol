@@ -131,13 +131,19 @@ contract FundContract is FundContractBase, IFundContract {
      * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable virtual validGasPrice nonReentrant() {
-       buy();
+       _exchange(msg.value);
+
+       _accountForOperation(
+            OPERATION_BUY << OPERATION_SHIFT_BITS,
+            uint256(uint160(_msgSender())),
+            msg.value
+        );
     }
 
     /**
      * exchange eth to token via ratios ETH/<token>
      */
-    buy() payable virtual validGasPrice nonReentrant() {
+    function buy() external payable validGasPrice nonReentrant() {
         
        _exchange(msg.value);
 
