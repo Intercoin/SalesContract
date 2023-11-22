@@ -125,6 +125,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _sellingToken address of erc20 token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
+     * @param _amountRaised raised amount
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
@@ -141,6 +142,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
+        uint256[] memory _amountRaised,
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
@@ -157,6 +159,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _sellingToken,
             _timestamps,
             _prices,
+            _amountRaised,
             _endTime,
             _thresholds,
             _bonuses,
@@ -176,6 +179,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _sellingToken address of erc20 token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
+     * @param _amountRaised raised amount
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
@@ -193,6 +197,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
+        uint256[] memory _amountRaised,
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
@@ -210,6 +215,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _sellingToken,
             _timestamps,
             _prices,
+            _amountRaised,
             _endTime,
             _thresholds,
             _bonuses,
@@ -231,6 +237,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
      * @param _token1 Wrapped token. WETH, or WBNB for binance
      * @param _timestamps array of timestamps
      * @param _prices price exchange
+     * @param _amountRaised raised amount
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
@@ -249,6 +256,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         address _token1,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
+        uint256[] memory _amountRaised,
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
@@ -267,6 +275,7 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
             _token1,
             _timestamps,
             _prices,
+            _amountRaised,
             _endTime,
             _thresholds,
             _bonuses,
