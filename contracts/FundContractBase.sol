@@ -17,6 +17,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint64[] public timestamps;
     uint256[] public prices;
     uint64 public _endTime;
+
+    uint256 public amountRaised;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
@@ -164,7 +166,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
         require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
-                                
+
+        amountRaised += amount2send;
+
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
         
