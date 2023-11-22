@@ -295,13 +295,20 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * get exchange rate ETH -> sellingToken
      */
     function getTokenPrice() public view returns (uint256 price) {
+        uint256 raised = amountRaised[0];
         uint256 ts = timestamps[0];
         price = prices[0];
         for (uint256 i = 0; i < timestamps.length; i++) {
-            if (block.timestamp >= timestamps[i] && timestamps[i]>=ts) {
+            if (block.timestamp >= timestamps[i] && timestamps[i] >= ts) {
                 ts = timestamps[i];
                 price = prices[i];
             }
+
+            if (totalAmountRaised >= amountRaised[i] && amountRaised[i] >= raised) {
+                raised = amountRaised[i];
+                price = prices[i];
+            }
+
         }
         
     }
