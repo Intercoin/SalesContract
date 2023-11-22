@@ -26,4 +26,8 @@ contract FundContractTokenMock is FundContractToken {
 
     }
 
+    // changed this can broke exchange, but need to test tokenPrice()
+    function setTotalAmountRaised(uint256 input) public {
+        totalAmountRaised = input;
+    }
 }

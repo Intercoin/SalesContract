@@ -81,6 +81,17 @@ describe("Fund", function () {
         FIVE.mul(FIVE).mul(ONE_ETH), 
         FIVE.mul(TEN).mul(ONE_ETH)
     ];
+
+    const amountRaised = [
+
+    ];
+    
+    const amountRaisedEx = [
+        0, 
+        MILLION.mul(ONE_ETH), 
+        TWO.mul(MILLION).mul(ONE_ETH), 
+
+    ];
     const bonuses = [TEN, TEN.mul(TWO), TEN.mul(FIVE)];  //[10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
     const ethDenom = HUNDRED.mul(MILLION); //BigNumber(1_00000000);
       
@@ -172,6 +183,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -216,6 +228,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -262,6 +275,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -310,6 +324,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -373,6 +388,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -478,6 +494,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -593,6 +610,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -707,6 +725,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -748,6 +767,46 @@ describe("Fund", function () {
 
         });
     
+        it('test tokenPrice', async () => {
+            var amountRaisedCustom = [0, 100, 500];
+            // Example:
+            //     thresholds = [10000, 25000, 50000]
+            //     bonuses = [0.1, 0.2, 0.5]
+            //     amountRaised = [0, 100, 500]
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+
+            let tx = await FundFactory.connect(owner).produce(
+                ERC20MintableInstance.address,
+                timestamps,
+                prices,
+                amountRaisedCustom,
+                lastTime,
+                thresholds,
+                bonuses,
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
+            );
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContractMock",instance);   
+
+            if (trustedForwardMode) {
+                await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+            var tokenPrice;
+
+            var setAmountTotalRaisedValues = [0,150,600];
+            for (let i in setAmountTotalRaisedValues) {
+                await FundContractInstance.connect(owner).setTotalAmountRaised(setAmountTotalRaisedValues[i]);
+                tokenPrice = await FundContractInstance.getTokenPrice();
+                expect(tokenPrice).to.be.eq(prices[i]);
+            }
+
+        });
+
         // usdt eth 
         // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
         // 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
@@ -765,6 +824,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,

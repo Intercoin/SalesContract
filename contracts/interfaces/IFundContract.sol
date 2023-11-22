@@ -8,6 +8,7 @@ interface IFundContract is IFundStructs {
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
+     * @param _amountRaised raised amount
      * @param _endTime after this time exchange stop
      * @param _thresholds thresholds
      * @param _bonuses bonuses
@@ -26,6 +27,7 @@ interface IFundContract is IFundStructs {
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
+        uint256[] memory _amountRaised,
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,

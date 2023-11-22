@@ -16,7 +16,11 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     address public sellingToken;
     uint64[] public timestamps;
     uint256[] public prices;
+    uint256[] public amountRaised;
+
     uint64 public _endTime;
+
+    uint256 public totalAmountRaised;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
@@ -92,6 +96,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
+        uint256[] memory _amountRaised,
         uint64 _endTs,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
@@ -114,6 +119,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         sellingToken = _sellingToken;
         timestamps = _timestamps;
         prices = _prices;
+        amountRaised = _amountRaised;
         _endTime = _endTs;
         thresholds = _thresholds;
         bonuses = _bonuses;
@@ -133,6 +139,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             address _sellingToken, 
             uint64[] memory _timestamps,
             uint256[] memory _prices,
+            uint256[] memory _amountRaised, 
             uint64 _endTs,
             uint256[] memory _thresholds,
             uint256[] memory _bonuses
@@ -141,6 +148,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _sellingToken = sellingToken;
         _timestamps = timestamps;
         _prices = prices;
+        _amountRaised = amountRaised;
         _endTs = _endTime;
         _thresholds = thresholds;
         _bonuses = bonuses;
@@ -164,7 +172,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
         require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
-                                
+
+        totalAmountRaised += amount2send;
+
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
         
@@ -285,13 +295,20 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * get exchange rate ETH -> sellingToken
      */
     function getTokenPrice() public view returns (uint256 price) {
+        uint256 raised = amountRaised[0];
         uint256 ts = timestamps[0];
         price = prices[0];
         for (uint256 i = 0; i < timestamps.length; i++) {
-            if (block.timestamp >= timestamps[i] && timestamps[i]>=ts) {
+            if (block.timestamp >= timestamps[i] && timestamps[i] >= ts) {
                 ts = timestamps[i];
                 price = prices[i];
             }
+
+            if (totalAmountRaised >= amountRaised[i] && amountRaised[i] >= raised) {
+                raised = amountRaised[i];
+                price = prices[i];
+            }
+
         }
         
     }

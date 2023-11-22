@@ -20,10 +20,14 @@ contract FundContractMock is FundContract {
         return participants[addr];
     }
 
-
     function getHoldedAmount() public view returns(uint256) {
         return getContractTotalAmount();
 
+    }
+
+    // changed this can broke exchange, but need to test tokenPrice()
+    function setTotalAmountRaised(uint256 input) public {
+        totalAmountRaised = input;
     }
 
 }
