@@ -81,6 +81,17 @@ describe("Fund", function () {
         FIVE.mul(FIVE).mul(ONE_ETH), 
         FIVE.mul(TEN).mul(ONE_ETH)
     ];
+
+    const amountRaised = [
+
+    ];
+    
+    const amountRaisedEx = [
+        0, 
+        MILLION.mul(ONE_ETH), 
+        TWO.mul(MILLION).mul(ONE_ETH), 
+
+    ];
     const bonuses = [TEN, TEN.mul(TWO), TEN.mul(FIVE)];  //[10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
     const ethDenom = HUNDRED.mul(MILLION); //BigNumber(1_00000000);
       
@@ -172,6 +183,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -216,6 +228,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -262,6 +275,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -310,6 +324,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -373,6 +388,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -478,6 +494,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -593,6 +610,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -707,6 +725,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
@@ -765,6 +784,7 @@ describe("Fund", function () {
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
+                amountRaisedEx,
                 lastTime,
                 thresholds,
                 bonuses,
