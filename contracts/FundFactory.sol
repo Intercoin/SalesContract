@@ -7,8 +7,8 @@ import "./interfaces/IFundContractAggregator.sol";
 import "./interfaces/IFundContractToken.sol";
 import "./interfaces/IFundContract.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@artman325/releasemanager/contracts/CostManagerFactoryHelper.sol";
-import "@artman325/releasemanager/contracts/ReleaseManagerHelper.sol";
+import "@intercoin/releasemanager/contracts/CostManagerFactoryHelper.sol";
+import "@intercoin/releasemanager/contracts/ReleaseManagerHelper.sol";
 
 import "./interfaces/IFundStructs.sol";
 

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 import "./IFundStructs.sol";
-import "@artman325/whitelist/contracts/interfaces/IWhitelist.sol";
+import "@intercoin/whitelist/contracts/interfaces/IWhitelist.sol";
 
 interface IFundContract is IFundStructs {
     /**

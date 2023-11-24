@@ -6,8 +6,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@artman325/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
-import "@artman325/whitelist/contracts/Whitelist.sol";
+import "@intercoin/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
+import "@intercoin/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
 
@@ -176,7 +176,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         totalAmountRaised += amount2send;
 
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount2send, "FundContract: Amount exceeds allowed balance");
+        require(tokenBalance >= amount2send, "Amount exceeds allowed balance");
         
         bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
         require(success == true, "Transfer tokens were failed"); 
