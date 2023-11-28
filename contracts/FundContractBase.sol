@@ -472,6 +472,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256 tokenPrice
     ) 
         internal 
+        virtual
     {
 
         if (participants[addr].exists == true) {
