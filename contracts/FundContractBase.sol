@@ -158,7 +158,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         return _endTime;
     }
     
-    function _exchange(uint256 inputAmount) internal {
+    function _exchange(uint256 inputAmount) internal virtual returns(uint256) {
 
         address sender = _msgSender();
 
@@ -185,13 +185,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         // bonus calculation
         _addBonus(
             sender, 
-            (inputAmount),
+            inputAmount,
             tokenPrice
         );
         
+        return amount2send;
     }
-    
-
     
     /**
      * withdraw some tokens to address
