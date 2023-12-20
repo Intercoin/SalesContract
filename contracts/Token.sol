@@ -2,113 +2,60 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IOnTransfer.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@intercoin/minimums/contracts/MinimumsBase.sol";
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+contract Token is ERC20, Ownable, MinimumsBase {
+    using EnumerableSet for EnumerableSet.AddressSet;
 
-contract Token is ERC20BurnableUpgradeable, OwnableUpgradeable {
+    uint256 intervalLockedUp;// 40 days; days not 40 days in seconds
+
+    // addressSet. Tokens obtained from suich users will be locked up for 40 days
+    EnumerableSet.AddressSet private groupSet;
     
-    
-    address public hook;
-    event HookUpdated(address hook);
-   
-    function initialize(
+
+    constructor (
         string memory name, 
         string memory symbol,
         uint256 initialSupply,
-        address owner,
-        address hook_
+        uint256 intervalCount
     ) 
-        public 
-        virtual 
-        initializer 
+        Ownable()
+        ERC20(name, symbol) 
+        MinimumsBase(86400) // interval = 1 day
     {
-        __Token_init(name, symbol, initialSupply*10**decimals(), owner, hook_);
+        intervalLockedUp = intervalCount;
+        _mint(owner(), initialSupply);
     }
-    
-     /**
-     * @dev Mints `initialSupply` amount of token and transfers them to `owner`.
-     *
-     * See {ERC20-constructor}.
-     */
-    function __Token_init(
-        string memory name,
-        string memory symbol,
-        uint256 initialSupply,
-        address owner,
-        address hook_
-    ) internal initializer {
-        __Context_init_unchained();
-        __ERC20_init_unchained(name, symbol);
-        __ERC20Burnable_init_unchained();
-        __Ownable_init();
-        
-        __Token_init_unchained(initialSupply, owner, hook_);
+   
+
+    function groupAdd(address account) public onlyOwner {
+        groupSet.add(account);
     }
 
-    function __Token_init_unchained(
-        uint256 initialSupply,
-        address owner,
-        address hook_
-    ) internal initializer {
-        transferOwnership(owner);
-        _updateHook(hook_);
-        _mint(owner, initialSupply);
+    function groupView(address account) public view returns(bool) {
+        return groupSet.contains(account);
     }
-    
-    
-    function transfer(
-        address recipient, 
-        uint256 amount
-    ) 
-        public 
-        virtual 
-        override 
-        returns (bool) 
-    {
-        super.transfer(recipient, amount);
-        
-         if (address(hook) != address(0)) {
-            IOnTransfer(hook).onTransfer(_msgSender(), recipient, amount);
-        }
-        
-        return true;
-    }
-    
-    /**
-     * set restriction for every transfer
-     * @param _hook address of Hook contract
-     * @return bool
-     */
-    function updateHook(
-        address _hook
-    ) 
-        public 
-        onlyOwner
-        returns (bool) 
-    {
-        return _updateHook(_hook);    
-        
-    }
-    
-    
-    function _updateHook(
-        address _hook
-    ) 
-        private 
-        returns (bool) 
-    {
 
-        if (_hook != hook) {
-            hook = _hook;
-            emit HookUpdated(_hook);
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
+        if (from != address(0)) {
+            require(
+                (balanceOf(from) - _getMinimum(from) >= amount),
+                "ERC20: insufficient allowance"
+            );
+            
         }
-        
-        return true;
+        if (groupSet.contains(from)) {
+            _minimumsAdd(
+                to,                 //address addr,
+                amount,             //uint256 amount, 
+                intervalLockedUp,   //uint256 intervalCount,
+                false               //bool gradual
+            );
+        }
     }
     
-    uint256[50] private __gap;
 }
