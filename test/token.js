@@ -50,7 +50,7 @@ describe("ITR", function () {
         token = await tokenF.connect(owner).deploy('ITR','ITR', InitialSupply, LockedUpInterval);
     })
 
-    it("owner can to add anyone to `Group`", async() => {
+    it("The owner can to add anyone to `Group`", async() => {
         await expect(
             token.connect(accountTwo).groupAdd(accountOne.address)
         ).to.be.revertedWith('Ownable: caller is not the owner');
@@ -67,13 +67,13 @@ describe("ITR", function () {
         
     });
 
-    it("owner should have all tokens after deploy", async() => {
+    it("The owner should have all tokens after deploy", async() => {
         expect(
             await token.balanceOf(owner.address)
         ).to.be.eq(InitialSupply);
     });
 
-    it("owner can transfer tokens without lockups", async() => {
+    it("The owner can transfer tokens without lockups", async() => {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
         await token.connect(owner).transfer(accountOne.address, amountToTransfer);
 
@@ -84,6 +84,30 @@ describe("ITR", function () {
         expect(
             await token.balanceOf(owner.address)
         ).to.be.eq(InitialSupply.sub(amountToTransfer));
+    });
+
+    it("The owner can transfer tokens with lockups without adding himself to the group personally.", async() => {
+        var amountToTransfer = HUNDRED.mul(ONE_ETH);
+
+        await expect(
+            token.connect(accountOne).transferWithLockedUp(accountTwo.address, amountToTransfer)
+        ).to.be.revertedWith('Ownable: caller is not the owner');
+
+        await token.connect(owner).transferWithLockedUp(accountOne.address, amountToTransfer);
+
+        expect(
+            await token.balanceOf(accountOne.address)
+        ).to.be.eq(amountToTransfer);
+
+        expect(
+            await token.balanceOf(owner.address)
+        ).to.be.eq(InitialSupply.sub(amountToTransfer));
+
+        // now accountOne can't send  until interval passed
+        await expect(
+            token.connect(accountOne).transfer(accountTwo.address, amountToTransfer)
+        ).to.be.revertedWith("ERC20: insufficient allowance");
+
     });
 
     it("anyone can transfer tokens without lockups if wasn't before", async() => {

@@ -40,6 +40,16 @@ contract Token is ERC20, Ownable, MinimumsBase {
         return groupSet.contains(account);
     }
 
+    function transferWithLockedUp(address to, uint256 amount) public onlyOwner {
+        super.transfer(to, amount);
+        _minimumsAdd(
+            to,                 //address addr,
+            amount,             //uint256 amount, 
+            intervalLockedUp,   //uint256 intervalCount,
+            false               //bool gradual
+        );
+    }
+
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal virtual override {
         if (from != address(0)) {
             require(
@@ -48,7 +58,7 @@ contract Token is ERC20, Ownable, MinimumsBase {
             );
             
         }
-        if (groupSet.contains(from)) {
+        if (groupSet.contains(from) && owner() != _msgSender()) {
             _minimumsAdd(
                 to,                 //address addr,
                 amount,             //uint256 amount, 
