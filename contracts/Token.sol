@@ -7,45 +7,56 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@intercoin/minimums/contracts/MinimumsBase.sol";
-
+/**
+ * @title Token with the ability to lock up tokens after transfer for specific users.
+ */
 contract Token is ERC20, Ownable, MinimumsBase {
     using EnumerableSet for EnumerableSet.AddressSet;
+    uint32 constant intervalPeriod = 86400; // 1 day
 
-    uint256 intervalLockedUp;// 40 days; days not 40 days in seconds
+    // Tokens obtained from such users will be locked up for period in days
+    mapping(address => uint256) public lockups;
 
-    // addressSet. Tokens obtained from suich users will be locked up for 40 days
-    EnumerableSet.AddressSet private groupSet;
-    
+    error AlreadyExists(address user);
+    error InvalidInput();
 
     constructor (
         string memory name, 
         string memory symbol,
-        uint256 initialSupply,
-        uint256 intervalCount
+        uint256 initialSupply
     ) 
         Ownable()
         ERC20(name, symbol) 
-        MinimumsBase(86400) // interval = 1 day
+        MinimumsBase(intervalPeriod)
     {
-        intervalLockedUp = intervalCount;
         _mint(owner(), initialSupply);
     }
    
-
-    function groupAdd(address account) public onlyOwner {
-        groupSet.add(account);
+    /*
+    * @notice add lockup for user.
+    * @params account tokens obtained from such user address  will be locked up for `intervalPeriodCount` count of intervalPeriod
+    * @params intervalPeriodCount houw much `intervalPeriodCount` of `intervalPeriod` tokens will be locked up
+    *  for `intervalPeriod` = "86400",  `intervalPeriodCount` = "2" means that tokens will be locked up for 2 days
+    */
+    function addLockup(address account, uint256 intervalPeriodCount) public onlyOwner {
+        if (intervalPeriodCount == 0) {
+            revert InvalidInput();
+        }
+        if (lockups[account] != 0) {
+            revert AlreadyExists(account);
+        }
+        lockups[account] = intervalPeriodCount;
     }
 
-    function groupView(address account) public view returns(bool) {
-        return groupSet.contains(account);
-    }
-
-    function transferWithLockedUp(address to, uint256 amount) public onlyOwner {
+    /**
+    * @notice the way for owner to locked up tokens after off-chain trade
+    */
+    function transferWithLockedUp(address to, uint256 amount, uint256 intervalPeriodCount) public onlyOwner {
         super.transfer(to, amount);
         _minimumsAdd(
             to,                 //address addr,
             amount,             //uint256 amount, 
-            intervalLockedUp,   //uint256 intervalCount,
+            intervalPeriodCount,//uint256 intervalCount,
             false               //bool gradual
         );
     }
@@ -58,11 +69,11 @@ contract Token is ERC20, Ownable, MinimumsBase {
             );
             
         }
-        if (groupSet.contains(from) && owner() != _msgSender()) {
+        if (lockups[from] != 0) {
             _minimumsAdd(
                 to,                 //address addr,
                 amount,             //uint256 amount, 
-                intervalLockedUp,   //uint256 intervalCount,
+                lockups[from],      //uint256 intervalCount,
                 false               //bool gradual
             );
         }
