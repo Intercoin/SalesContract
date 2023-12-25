@@ -163,7 +163,7 @@ contract FundContract is FundContractBase, IFundContract {
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal virtual override {
-        
+ 
         require(address(this).balance >= amount, "Amount exceeds allowed balance");
         require(addr != address(0), "address can not be empty");
         

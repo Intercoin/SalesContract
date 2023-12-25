@@ -25,6 +25,8 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const NO_COSTMANAGER = ZERO_ADDRESS;
 
+const FRACTION = 10000;
+
 const EnumWithdrawOption = {
     never: 0,
     afterEndTime: 1,
@@ -82,9 +84,6 @@ describe("Fund", function () {
         FIVE.mul(TEN).mul(ONE_ETH)
     ];
 
-    const amountRaised = [
-
-    ];
     
     const amountRaisedEx = [
         0, 
@@ -533,7 +532,7 @@ describe("Fund", function () {
             await accountTwo.sendTransaction({
                 to: FundContractInstance.address, 
                 value: amountETHSendToContract,
-                gasLimit: 150000
+                gasLimit: 180000
             });
 
             var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
@@ -545,12 +544,12 @@ describe("Fund", function () {
             // go to end time
             await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTime)]);
             await ethers.provider.send('evm_mine');
-/*          
+            /*          
 
-@dev
-commented out this part
-need to fix the code below
-looks like is not completed
+            @dev
+            commented out this part
+            need to fix the code below
+            looks like is not completed
 
             let tmpSnapId;
             //---------------------------------
@@ -595,7 +594,7 @@ looks like is not completed
 
             // restore snapshot
             await ethers.provider.send('evm_revert', [tmpSnapId]);
-*/
+            */
         });
     
     
@@ -887,6 +886,131 @@ looks like is not completed
             expect(accountOneBalanceAfter).to.be.eq(base.add(base.mul(20).div(100)));
         });
 
+        it('test commissions', async () => {
+            // Example:
+            //     thresholds = [10000, 100000, 1000000]
+            //     bonuses = [0, 0, 0.5]
+            //  set commissions to
+            //      accountEight - 10%
+            //      accountNine  - 20%;
+            //      accountEleven- 10%;    
+
+            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
+
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = parseInt(tmp.timestamp);
+
+            let tx = await FundFactory.connect(owner).produce(
+                ERC20MintableInstance.address,
+                timestamps,
+                prices, //prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
+                amountRaisedEx,
+                lastTime,
+                [
+                    TEN.mul(THOUSAND).mul(ONE_ETH), 
+                    HUNDRED.mul(THOUSAND).mul(ONE_ETH), 
+                    THOUSAND.mul(THOUSAND).mul(ONE_ETH)
+                ],
+                [
+                    ZERO,
+                    ZERO,
+                    TEN.mul(FIVE)
+                ],
+                EnumWithdrawOption.anytime,
+                DontUseWhitelist
+            );
+
+            const rc = await tx.wait(); // 0ms, as tx is already confirmed
+            const event = rc.events.find(event => event.event === 'InstanceCreated');
+            const [instance,] = event.args;
+
+            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+
+            if (trustedForwardMode) {
+                await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            // add commissions
+            await FundContractInstance.connect(owner).addCommission(1000, accountEight.address);
+            await FundContractInstance.connect(owner).addCommission(2000, accountNine.address);
+            await FundContractInstance.connect(owner).addCommission(1000, accountEleven.address);
+
+            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(ONE_ETH));
+            
+            var accountOneBalanceBefore = await ERC20MintableInstance.balanceOf(accountOne.address);
+            var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var accountThreeBalanceBefore = await ERC20MintableInstance.balanceOf(accountThree.address);
+
+            var accountOwnerBalanceBefore = (await ethers.provider.getBalance(owner.address));
+            var accountEightBalanceBefore = (await ethers.provider.getBalance(accountEight.address));
+            var accountNineBalanceBefore = (await ethers.provider.getBalance(accountNine.address));
+            var accountElevenBalanceBefore = (await ethers.provider.getBalance(accountEleven.address));
+
+            // buy tokens for 3 ETH
+            const TotalETHToSend = THREE.mul(ONE_ETH);
+            await accountOne.sendTransaction({
+                to: FundContractInstance.address, 
+                value: TotalETHToSend.div(3),
+                gasLimit: 2000000
+            });
+            await accountTwo.sendTransaction({
+                to: FundContractInstance.address, 
+                value: TotalETHToSend.div(3),
+                gasLimit: 2000000
+            });
+            await accountThree.sendTransaction({
+                to: FundContractInstance.address, 
+                value: TotalETHToSend.div(3),
+                gasLimit: 2000000
+            });
+
+            var ratio_ETH_TOKENS = await FundContractInstance.getTokenPrice();
+            var expectedTokens = (TotalETHToSend.div(3)).mul(ethDenom).div(ratio_ETH_TOKENS);
+            var accountOneBalanceAfter = await ERC20MintableInstance.balanceOf(accountOne.address);
+            var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var accountThreeBalanceAfter = await ERC20MintableInstance.balanceOf(accountThree.address);
+            
+            expect(expectedTokens).not.be.eq(ZERO);
+            expect(accountOneBalanceAfter.sub(accountOneBalanceBefore)).to.be.eq(expectedTokens);
+            expect(accountTwoBalanceAfter.sub(accountTwoBalanceBefore)).to.be.eq(expectedTokens);
+            expect(accountThreeBalanceAfter.sub(accountThreeBalanceBefore)).to.be.eq(expectedTokens);
+
+
+            const tx1 = await mixedCall(FundContractInstance, trustedForwardMode, owner, 'claimAll', []);
+            const rc1 = await tx1.wait(); 
+            var txFee= rc1.cumulativeGasUsed.mul(rc1.effectiveGasPrice);
+
+            if (trustedForwardMode) {
+                txFee = 0; // owner didn't spent anything, trusted forwarder payed fee for tx
+            }
+
+            var accountOwnerBalanceAfter = (await ethers.provider.getBalance(owner.address));
+            
+
+            const ExpectedOwnerETH = TotalETHToSend.sub(TotalETHToSend.mul(BigNumber.from(1000+2000+1000)).div(FRACTION));
+            expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore)).to.be.eq(ExpectedOwnerETH.sub(txFee));
+
+            await expect(
+                FundContractInstance.connect(accountFourth).sendCommissions()
+            ).to.be.revertedWith('FundContract: Exchange time should be passed');
+
+            //time
+            // go to end time
+            await time.increase(parseInt(lastTime-currentBlockTime));
+
+            await FundContractInstance.connect(accountFourth).sendCommissions();
+
+            var accountEightBalanceAfter = (await ethers.provider.getBalance(accountEight.address));
+            var accountNineBalanceAfter = (await ethers.provider.getBalance(accountNine.address));
+            var accountElevenBalanceAfter = (await ethers.provider.getBalance(accountEleven.address));
+
+            expect(accountEightBalanceAfter.sub(accountEightBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
+            expect(accountNineBalanceAfter.sub(accountNineBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(2000)).div(FRACTION));
+            expect(accountElevenBalanceAfter.sub(accountElevenBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
+
+        });
     });
 
     
