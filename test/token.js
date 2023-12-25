@@ -47,24 +47,48 @@ describe("ITR", function () {
 
     beforeEach("deploying", async() => {
         var tokenF = await ethers.getContractFactory("Token");    
-        token = await tokenF.connect(owner).deploy('ITR','ITR', InitialSupply, LockedUpInterval);
+        token = await tokenF.connect(owner).deploy('ITR','ITR', InitialSupply);
     })
 
-    it("The owner can to add anyone to `Group`", async() => {
+    it("The owner can to add lockups to anyone", async() => {
         await expect(
-            token.connect(accountTwo).groupAdd(accountOne.address)
+            token.connect(accountTwo).addLockup(accountOne.address, LockedUpInterval)
         ).to.be.revertedWith('Ownable: caller is not the owner');
 
         expect(
-            await token.groupView(accountOne.address)
-        ).to.be.eq(false);
+            await token.lockups(accountOne.address)
+        ).to.be.eq(0);
 
-        await token.connect(owner).groupAdd(accountOne.address);
+        await token.connect(owner).addLockup(accountOne.address, LockedUpInterval);
 
         expect(
-            await token.groupView(accountOne.address)
-        ).to.be.eq(true);
+            await token.lockups(accountOne.address)
+        ).to.be.eq(LockedUpInterval);
         
+    });
+
+    it("The owner can to add different lockup for different users", async() => {
+        await token.connect(owner).addLockup(accountOne.address, ONE);
+        await token.connect(owner).addLockup(accountTwo.address, TWO);
+        expect(
+            await token.lockups(accountOne.address)
+        ).to.be.eq(ONE);
+        expect(
+            await token.lockups(accountTwo.address)
+        ).to.be.eq(TWO);
+    });
+    
+    it("shouldnt add lockup again", async() => {
+        await token.connect(owner).addLockup(accountOne.address, LockedUpInterval);
+        await expect(
+            token.connect(owner).addLockup(accountOne.address, LockedUpInterval)
+        ).to.be.revertedWith('AlreadyExists').withArgs(accountOne.address);
+    });
+
+    it("`LockedUpInterval` can not be ZERO", async() => {
+        await expect(
+            token.connect(owner).addLockup(accountOne.address, ZERO)
+        ).to.be.revertedWith('InvalidInput');
     });
 
     it("The owner should have all tokens after deploy", async() => {
@@ -90,10 +114,10 @@ describe("ITR", function () {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
 
         await expect(
-            token.connect(accountOne).transferWithLockedUp(accountTwo.address, amountToTransfer)
+            token.connect(accountOne).transferWithLockedUp(accountTwo.address, amountToTransfer, LockedUpInterval)
         ).to.be.revertedWith('Ownable: caller is not the owner');
 
-        await token.connect(owner).transferWithLockedUp(accountOne.address, amountToTransfer);
+        await token.connect(owner).transferWithLockedUp(accountOne.address, amountToTransfer, LockedUpInterval);
 
         expect(
             await token.balanceOf(accountOne.address)
@@ -127,7 +151,7 @@ describe("ITR", function () {
     it("tokens should locked up if transfered EOA from `Group` person", async() => {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
 
-        await token.connect(owner).groupAdd(accountOne.address);
+        await token.connect(owner).addLockup(accountOne.address, LockedUpInterval);
         await token.connect(owner).transfer(accountOne.address, amountToTransfer);
         await token.connect(accountOne).transfer(accountTwo.address, amountToTransfer);
         await expect(
@@ -142,7 +166,7 @@ describe("ITR", function () {
         var fundF = await ethers.getContractFactory("MockTransferContract");    
         var fund = await fundF.connect(owner).deploy();
 
-        await token.connect(owner).groupAdd(fund.address);
+        await token.connect(owner).addLockup(fund.address, LockedUpInterval);
         await token.connect(owner).transfer(fund.address, amountToTransfer);
 
         // accountTwo buy some tokens from Fund contract
@@ -160,7 +184,7 @@ describe("ITR", function () {
         var fundF = await ethers.getContractFactory("MockTransferContract");    
         var fund = await fundF.connect(owner).deploy();
 
-        await token.connect(owner).groupAdd(fund.address);
+        await token.connect(owner).addLockup(fund.address, LockedUpInterval);
         await token.connect(owner).transfer(fund.address, amountToTransfer);
 
         expect(
