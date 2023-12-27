@@ -49,6 +49,7 @@
   },
   "dependencies": {
     "@intercoin/community": "^1.2.0",
+    "@intercoin/liquidity": "^1.0.0",
     "@intercoin/minimums": "^0.0.1-beta",
     "@intercoin/releasemanager": "^2.0.0",
     "@intercoin/trustedforwarder": "^1.0.1",

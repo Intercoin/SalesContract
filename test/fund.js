@@ -25,6 +25,7 @@ const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const DEAD_ADDRESS = '0x000000000000000000000000000000000000dEaD';
 const NO_COSTMANAGER = ZERO_ADDRESS;
 
+
 const FRACTION = 10000;
 
 const EnumWithdrawOption = {
@@ -1016,5 +1017,98 @@ describe("Fund", function () {
     
 
     }
+
+    describe("DistributeLiquidity", function(){
+        it('test', async () => {
+            //polygon/mumbai lib
+            //0x1eA4C4613a4DfdAEEB95A261d11520c90D5d6252
+            var libData = await ethers.getContractFactory("@intercoin/liquidity/contracts/LiquidityLib.sol:LiquidityLib");    
+            const LiquidityLib = await libData.deploy();
+
+            const ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");    
+            const token0 = await ERC20MintableF.deploy("token0", "token0");
+            const token1 = await ERC20MintableF.deploy("token1", "token1");
+            
+
+            let tmp = await LiquidityLib.uniswapSettings();
+            
+            const UNISWAP_ROUTER = tmp[0];
+            const UNISWAP_ROUTER_FACTORY_ADDRESS = tmp[1];
+            var uniswapRouterFactoryInstance = await ethers.getContractAt("@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol:IUniswapV2Factory",UNISWAP_ROUTER_FACTORY_ADDRESS);
+            var uniswapRouterInstance = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol:IUniswapV2Router02", UNISWAP_ROUTER);
+
+            let weth = await uniswapRouterInstance.WETH();
+            const wrappedNativeTokenAsWETH = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IWETH.sol:IWETH", weth);
+            const wrappedNativeTokenAsERC20 = await ethers.getContractAt("ERC20Mintable", weth);
+            
+            await uniswapRouterFactoryInstance.createPair(token0.address, weth);
+            await uniswapRouterFactoryInstance.createPair(token1.address, weth);
+            await uniswapRouterFactoryInstance.createPair(token0.address, token1.address);
+
+            const ts = await time.latest();
+            const timeUntil = parseInt(ts)*2;
+            const amountToAddLiquidity = ONE_ETH.mul(THOUSAND);
+
+            await wrappedNativeTokenAsWETH.connect(accountFive).deposit({
+                value: amountToAddLiquidity.mul(FIVE), // make more WETH
+                //gasLimit: 180000
+            });
+
+            //token0/wrappedNativeToken
+            await token0.mint(accountFive.address, amountToAddLiquidity);
+            await token0.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            //await wrappedNativeToken.mint(accountFive.address, amountToAddLiquidity);
+            await wrappedNativeTokenAsERC20.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            await uniswapRouterInstance.connect(accountFive).addLiquidity(token0.address, weth, amountToAddLiquidity, amountToAddLiquidity, 0, 0, accountFive.address, timeUntil);
+
+            //token0/token1
+            await token0.mint(accountFive.address, amountToAddLiquidity);
+            await token0.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            await token1.mint(accountFive.address, amountToAddLiquidity);
+            await token1.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            await uniswapRouterInstance.connect(accountFive).addLiquidity(token0.address, token1.address, amountToAddLiquidity, amountToAddLiquidity, 0, 0, accountFive.address, timeUntil);
+
+            //token1/wrappedNativeToken
+            await token1.mint(accountFive.address, amountToAddLiquidity);
+            await token1.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            //await wrappedNativeToken.mint(accountFive.address, amountToAddLiquidity);
+            await wrappedNativeTokenAsERC20.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            await uniswapRouterInstance.connect(accountFive).addLiquidity(token1.address, weth, amountToAddLiquidity, amountToAddLiquidity, 0, 0, accountFive.address, timeUntil);
+
+            //https://bscscan.com/address/0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
+
+            const MockDistributeLiquidityF = await ethers.getContractFactory("MockDistributeLiquidity");
+            
+            const MockDistributeLiquidity = await MockDistributeLiquidityF.deploy(
+                token0.address, // token0
+                token1.address, // token1  
+                LiquidityLib.address, // LiquidityLib
+                {
+                    gasLimit: 2000000
+                }
+            );
+        
+            const amount = ONE_ETH;
+            var balanceBefore = (await ethers.provider.getBalance(MockDistributeLiquidity.address));
+            await owner.sendTransaction({
+                to: MockDistributeLiquidity.address,
+                value: amount,
+                gasLimit: 180000
+            });
+
+            var balanceAfter = (await ethers.provider.getBalance(MockDistributeLiquidity.address));
+
+console.log("weth",weth);
+            await MockDistributeLiquidity.addLiquidity();
+            var balanceAfterAddLiquidity = (await ethers.provider.getBalance(MockDistributeLiquidity.address));
+
+            console.log("balanceBefore              = ", balanceBefore.toString());
+            console.log("balanceAfter               = ", balanceAfter.toString());
+            console.log("balanceAfterAddLiquidity   = ", balanceAfterAddLiquidity.toString());
+
+            //return;
+                
+        });
+    });
 
 });
