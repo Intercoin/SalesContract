@@ -114,10 +114,10 @@ describe("ITR", function () {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
 
         await expect(
-            token.connect(accountOne).transferWithLockedUp(accountTwo.address, amountToTransfer, LockedUpInterval)
+            token.connect(accountOne).transferWithLockup(accountTwo.address, amountToTransfer, LockedUpInterval)
         ).to.be.revertedWith('Ownable: caller is not the owner');
 
-        await token.connect(owner).transferWithLockedUp(accountOne.address, amountToTransfer, LockedUpInterval);
+        await token.connect(owner).transferWithLockup(accountOne.address, amountToTransfer, LockedUpInterval);
 
         expect(
             await token.balanceOf(accountOne.address)
