@@ -1019,27 +1019,34 @@ describe("Fund", function () {
     }
 
     describe("DistributeLiquidity", function(){
-        it('test', async () => {
+        var liquidityLib,
+            token0,
+            token1, 
+            uniswapRouterFactoryInstance,
+            uniswapRouterInstance,
+            wrappedNativeTokenAsWETH,
+            wrappedNativeTokenAsERC20,
+            tmp
+        ;
+        beforeEach("prepare", async() => {
             //polygon/mumbai lib
             //0x1eA4C4613a4DfdAEEB95A261d11520c90D5d6252
             var libData = await ethers.getContractFactory("@intercoin/liquidity/contracts/LiquidityLib.sol:LiquidityLib");    
-            const LiquidityLib = await libData.deploy();
+            liquidityLib = await libData.deploy();
 
             const ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");    
-            const token0 = await ERC20MintableF.deploy("token0", "token0");
-            const token1 = await ERC20MintableF.deploy("token1", "token1");
-            
+            token0 = await ERC20MintableF.deploy("token0", "token0");
+            token1 = await ERC20MintableF.deploy("token1", "token1");
 
-            let tmp = await LiquidityLib.uniswapSettings();
-            
+            tmp = await liquidityLib.uniswapSettings();
             const UNISWAP_ROUTER = tmp[0];
             const UNISWAP_ROUTER_FACTORY_ADDRESS = tmp[1];
-            var uniswapRouterFactoryInstance = await ethers.getContractAt("@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol:IUniswapV2Factory",UNISWAP_ROUTER_FACTORY_ADDRESS);
-            var uniswapRouterInstance = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol:IUniswapV2Router02", UNISWAP_ROUTER);
+            uniswapRouterFactoryInstance = await ethers.getContractAt("@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol:IUniswapV2Factory",UNISWAP_ROUTER_FACTORY_ADDRESS);
+            uniswapRouterInstance = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol:IUniswapV2Router02", UNISWAP_ROUTER);
 
             let weth = await uniswapRouterInstance.WETH();
-            const wrappedNativeTokenAsWETH = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IWETH.sol:IWETH", weth);
-            const wrappedNativeTokenAsERC20 = await ethers.getContractAt("ERC20Mintable", weth);
+            wrappedNativeTokenAsWETH = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IWETH.sol:IWETH", weth);
+            wrappedNativeTokenAsERC20 = await ethers.getContractAt("ERC20Mintable", weth);
             
             await uniswapRouterFactoryInstance.createPair(token0.address, weth);
             await uniswapRouterFactoryInstance.createPair(token1.address, weth);
@@ -1075,14 +1082,17 @@ describe("Fund", function () {
             await wrappedNativeTokenAsERC20.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
             await uniswapRouterInstance.connect(accountFive).addLiquidity(token1.address, weth, amountToAddLiquidity, amountToAddLiquidity, 0, 0, accountFive.address, timeUntil);
 
-            //https://bscscan.com/address/0xbb4cdb9cbd36b01bd1cbaebf2de08d9173bc095c
+        });
+
+        // series test from adding eth to DistributeLiquidity and calling addLiquidity method
+        it('test', async () => {
 
             const MockDistributeLiquidityF = await ethers.getContractFactory("MockDistributeLiquidity");
             
             const MockDistributeLiquidity = await MockDistributeLiquidityF.deploy(
                 token0.address, // token0
                 token1.address, // token1  
-                LiquidityLib.address, // LiquidityLib
+                liquidityLib.address, // liquidityLib
                 {
                     gasLimit: 2000000
                 }
@@ -1098,16 +1108,45 @@ describe("Fund", function () {
 
             var balanceAfter = (await ethers.provider.getBalance(MockDistributeLiquidity.address));
 
-console.log("weth",weth);
             await MockDistributeLiquidity.addLiquidity();
             var balanceAfterAddLiquidity = (await ethers.provider.getBalance(MockDistributeLiquidity.address));
 
-            console.log("balanceBefore              = ", balanceBefore.toString());
-            console.log("balanceAfter               = ", balanceAfter.toString());
-            console.log("balanceAfterAddLiquidity   = ", balanceAfterAddLiquidity.toString());
+            expect(balanceBefore).to.be.eq(ZERO);
+            expect(balanceAfter).to.be.eq(amount);
+            expect(balanceAfterAddLiquidity).to.be.eq(ZERO);
 
-            //return;
-                
+            expect(await token0.balanceOf(MockDistributeLiquidity.address)).to.be.eq(ZERO);
+            expect(await token1.balanceOf(MockDistributeLiquidity.address)).to.be.lt(HUNDRED); // presicion. tokens left can be accommulated on each addLiqauidity
+            expect(await wrappedNativeTokenAsERC20.balanceOf(MockDistributeLiquidity.address)).to.be.eq(ZERO);
+
+            //try the same  and watch or price
+
+            var pairAddress = await uniswapRouterFactoryInstance.getPair(token0.address, token1.address);
+            var pair = await ethers.getContractAt("@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol:IUniswapV2Pair", pairAddress);
+
+            var before = {
+                reserve0: 0,
+                reserve1: 0,
+            };
+            var after = {
+                reserve0: 0,
+                reserve1: 0,
+            };
+            
+            [before.reserve0, before.reserve1] = await pair.getReserves();
+
+            await owner.sendTransaction({
+                to: MockDistributeLiquidity.address,
+                value: amount,
+                gasLimit: 180000
+            });
+            await MockDistributeLiquidity.addLiquidity();
+
+            [after.reserve0, after.reserve1] = await pair.getReserves();
+            
+            expect(before.reserve0).to.be.eq(after.reserve0);
+            expect(before.reserve1).to.be.lt(after.reserve1);
+
         });
     });
 
