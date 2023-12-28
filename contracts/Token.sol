@@ -12,7 +12,7 @@ import "@intercoin/minimums/contracts/MinimumsBase.sol";
  */
 contract Token is ERC20, Ownable, MinimumsBase {
     using EnumerableSet for EnumerableSet.AddressSet;
-    uint32 constant intervalPeriod = 86400; // 1 day
+    uint32 constant interval = 86400; // 1 day
 
     // Tokens obtained from such users will be locked up for period in days
     mapping(address => uint256) public lockups;
@@ -27,36 +27,36 @@ contract Token is ERC20, Ownable, MinimumsBase {
     ) 
         Ownable()
         ERC20(name, symbol) 
-        MinimumsBase(intervalPeriod)
+        MinimumsBase(interval)
     {
         _mint(owner(), initialSupply);
     }
    
     /*
     * @notice add lockup for user.
-    * @params account tokens obtained from such user address  will be locked up for `intervalPeriodCount` count of intervalPeriod
-    * @params intervalPeriodCount houw much `intervalPeriodCount` of `intervalPeriod` tokens will be locked up
-    *  for `intervalPeriod` = "86400",  `intervalPeriodCount` = "2" means that tokens will be locked up for 2 days
+    * @params account tokens obtained from such user address  will be locked up for `intervalCount` count of interval
+    * @params intervalCount houw much `intervalCount` of `interval` tokens will be locked up
+    *  for `interval` = "86400",  `intervalCount` = "2" means that tokens will be locked up for 2 days
     */
-    function addLockup(address account, uint256 intervalPeriodCount) public onlyOwner {
-        if (intervalPeriodCount == 0) {
+    function addLockup(address account, uint256 intervalCount) public onlyOwner {
+        if (intervalCount == 0) {
             revert InvalidInput();
         }
         if (lockups[account] != 0) {
             revert AlreadyExists(account);
         }
-        lockups[account] = intervalPeriodCount;
+        lockups[account] = intervalCount;
     }
 
     /**
     * @notice the way for owner to locked up tokens after off-chain trade
     */
-    function transferWithLockedUp(address to, uint256 amount, uint256 intervalPeriodCount) public onlyOwner {
+    function transferWithLockup(address to, uint256 amount, uint256 intervalCount) public onlyOwner {
         super.transfer(to, amount);
         _minimumsAdd(
             to,                 //address addr,
             amount,             //uint256 amount, 
-            intervalPeriodCount,//uint256 intervalCount,
+            intervalCount,      //uint256 intervalCount,
             false               //bool gradual
         );
     }
