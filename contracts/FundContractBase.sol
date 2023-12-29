@@ -18,13 +18,28 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint256[] public prices;
     uint256[] public amountRaised;
 
+    uint256[] public commissionFractions;
+    address[] public commissionAddresses;
+    uint256 public holdTotalFraction;
+
+    /// total income tokens
+    uint256 public totalIncome;
+
+    /// total income tokens payed by sendCommission
+    uint256 public holdTotalAlreadyPayed;
+    /// total income tokens payed by claim
+    uint256 public totalIncomeAlreadyClaimed;
+
     uint64 public _endTime;
 
     uint256 public totalAmountRaised;
     
+    
     uint256 internal constant maxGasPrice = 1*10**18; 
 
     uint256 internal constant priceDenom = 100000000;//1*10**8;
+
+    uint256 internal constant FRACTION = 10000;
 
     uint8 internal constant OPERATION_SHIFT_BITS = 240;  // 256 - 16
     // Constants representing operations
@@ -65,13 +80,15 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     event GroupBonusAdded(string indexed groupName, uint256 ethAmount, uint256 tokenPrice);
     event Claimed(uint256 amount, address addr);
     event Withdrawn(uint256 amount, address addr);
-    
+    event CommissionsWasSent(uint256 amount, address[] addrs);
 
     error ForwarderCanNotBeOwner();
     error DeniedForForwarder();
     error NotSupported();
     error WithdrawDisabled();
     error WhitelistError();
+    error InvalidInput();
+    error InsufficientAmount();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
@@ -157,6 +174,16 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     function endTime() external view returns (uint64) {
         return _endTime;
     }
+
+    function addCommission(uint256 fraction, address account) public onlyOwner {
+        if (fraction == 0 || fraction > FRACTION || account == address(0)) {
+            revert InvalidInput();
+        }
+        commissionFractions.push(fraction);
+        commissionAddresses.push(account);
+
+        holdTotalFraction += fraction;
+    }
     
     function _exchange(uint256 inputAmount) internal virtual returns(uint256) {
 
@@ -173,6 +200,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
         require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
 
+        totalIncome += inputAmount;
         totalAmountRaised += amount2send;
 
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
@@ -249,6 +277,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param addr address to send
      */
     function claim(uint256 amount, address addr) public onlyOwner {
+        uint256 amountAvailableToClaim = availableToClaim();
+        if (amountAvailableToClaim < amount) {
+            revert InsufficientAmount();
+        }
+        totalIncomeAlreadyClaimed += amount;
+
         _claim(amount, addr);
         emit Claimed(amount, addr);
         _accountForOperation(
@@ -256,6 +290,28 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             uint256(uint160(addr)),
             amount
         );
+    }
+    /**
+    * @notice send commission to the addresses `commissionAddresses`
+    */
+    function sendCommissions() public {
+        require(_endTime < block.timestamp, "FundContract: Exchange time should be passed");
+
+        uint256 amount2send = (totalIncome*holdTotalFraction/FRACTION);
+
+        if (totalIncome == 0) {
+            revert InsufficientAmount();
+        }
+
+        for (uint256 i = 0; i<commissionAddresses.length; i++) {
+            _claim(
+                totalIncome * commissionFractions[i] / FRACTION, 
+                commissionAddresses[i]
+            );
+        }
+
+        emit CommissionsWasSent(amount2send, commissionAddresses);
+        
     }
     
     /**
@@ -278,9 +334,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * claim all eth to owner(sender)
      */
     function claimAll() public onlyOwner {
-        uint256 amount = getContractTotalAmount();
+        uint256 amount = availableToClaim();
+        totalIncomeAlreadyClaimed += amount;
         _claim(amount, _msgSender());
-
         emit Claimed(amount, _msgSender());
 
         _accountForOperation(
@@ -288,6 +344,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             uint256(uint160(_msgSender())),
             amount
         );
+    }
+
+    function availableToClaim() internal view returns(uint256) {
+        return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
     }
     
     /**
