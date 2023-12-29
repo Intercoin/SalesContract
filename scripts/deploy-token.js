@@ -28,8 +28,7 @@ async function main() {
 	let _params = [
         "ITR-test",
         "ITR-test",
-        TWO.mul(HUNDRED).mul(MILLION).mul(ONE_ETH), // 200mil tokens
-        40  // days
+        TWO.mul(HUNDRED).mul(MILLION).mul(ONE_ETH) // 200mil tokens
 		
 	]
 	let params = [

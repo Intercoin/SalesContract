@@ -1132,8 +1132,18 @@ describe("Fund", function () {
                 reserve0: 0,
                 reserve1: 0,
             };
-            
-            [before.reserve0, before.reserve1] = await pair.getReserves();
+            var pairToken0 = await pair.token0();
+            var token01bool = false;
+            if (pairToken0 == token0.address) {
+                token01bool = true;
+            } else {
+                token01bool = false;
+            }
+            if (token01bool) {
+                [before.reserve0, before.reserve1] = await pair.getReserves();
+            } else {
+                [before.reserve1, before.reserve0] = await pair.getReserves();
+            }
 
             await owner.sendTransaction({
                 to: MockDistributeLiquidity.address,
@@ -1142,7 +1152,12 @@ describe("Fund", function () {
             });
             await MockDistributeLiquidity.addLiquidity();
 
-            [after.reserve0, after.reserve1] = await pair.getReserves();
+            if (token01bool) {
+                [after.reserve0, after.reserve1] = await pair.getReserves();
+            } else {
+                [after.reserve1, after.reserve0] = await pair.getReserves();
+
+            }
             
             expect(before.reserve0).to.be.eq(after.reserve0);
             expect(before.reserve1).to.be.lt(after.reserve1);
