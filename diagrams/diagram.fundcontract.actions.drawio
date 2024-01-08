@@ -1,0 +1,162 @@
+<mxfile host="app.diagrams.net" modified="2024-01-08T15:42:32.729Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" etag="UiEnzjTdWZm30pRKOVtL" version="22.1.17" type="google">
+  <diagram name="Page-1" id="_mEn0FdzosOMF2Xo1i3K">
+    <mxGraphModel dx="1687" dy="1059" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-63" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-1" target="Yx1XPEGHreDzP31iC_sP-52">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="620" y="40" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-1" target="Yx1XPEGHreDzP31iC_sP-55">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-1" value="ITR&lt;br&gt;(ERC20)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="460" y="10" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-2" target="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="520" y="380" as="sourcePoint" />
+            <mxPoint x="640" y="720" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="500" y="710" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-2" target="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="519.97" y="230" as="sourcePoint" />
+            <mxPoint x="610" y="540" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="500" y="540" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-2" value="FundContract&lt;br&gt;ITR/BNB(coins)" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="440" y="150" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-3" target="Yx1XPEGHreDzP31iC_sP-38">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="570" y="337" as="sourcePoint" />
+            <mxPoint x="630" y="370" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="570" y="354" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-3" value="DistributeLiquidity&lt;br&gt;INTER/WBNB" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="510" y="240" width="120" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-14" value="Actions" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="440" width="445" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-11" value="Owner" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="10" y="30" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-16" value="addCommission" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="55" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-17" value="whitelistAdd" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="315" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-18" value="whitelistRemove" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="315" y="110" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-19" value="claim" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="55" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-20" value="claimAll" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="55" y="110" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-26" value="setGroup" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="55" y="150" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-27" value="setTrustedForwarder" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="185" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-28" value="transferOwnership" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="185" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-29" value="renounceOwnership" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="185" y="110" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-30" value="withdraw" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="185" y="150" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-31" value="withdrawAll" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-14">
+          <mxGeometry x="315" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-34" value="Public Actions" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="650" width="445" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-4" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="10" y="30" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-21" value="sendCommissions" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="315" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-22" value="availableToClaim" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="55" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-23" value="getTokenPrice" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="185" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-24" value="getGroupBonus" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="185" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-25" value="endTime" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="315" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-33" value="getConfig" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-34">
+          <mxGeometry x="55" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-38" value="Public Actions" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="294" width="445" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-39" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-38">
+          <mxGeometry x="10" y="30" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-41" value="addLiquidity" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-38">
+          <mxGeometry x="55" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-52" value="Public Actions" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="20" width="445" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-53" value="User" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-52">
+          <mxGeometry x="10" y="30" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-54" value="all ERC20 operations" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-52">
+          <mxGeometry x="55" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-55" value="Actions" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="655" y="150" width="445" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-56" value="Owner" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-55">
+          <mxGeometry x="10" y="30" width="30" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-57" value="addLockup" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-55">
+          <mxGeometry x="55" y="30" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-62" value="transferWithLockup" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="Yx1XPEGHreDzP31iC_sP-55">
+          <mxGeometry x="55" y="70" width="120" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-65" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-2" target="Yx1XPEGHreDzP31iC_sP-1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="230" as="sourcePoint" />
+            <mxPoint x="420" y="180" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-66" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;entryX=0;entryY=0;entryDx=0;entryDy=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="Yx1XPEGHreDzP31iC_sP-2" target="Yx1XPEGHreDzP31iC_sP-3">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="750" y="400" as="sourcePoint" />
+            <mxPoint x="800" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="Yx1XPEGHreDzP31iC_sP-72" value="&lt;h1&gt;FundContract&#39;s ecosystem&lt;/h1&gt;&lt;p&gt;&lt;span style=&quot;color: rgb(55, 65, 81); font-family: Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&amp;quot;; font-size: 16px; background-color: initial;&quot;&gt;The FundContract is utilized to sell sellingTokens using native coins, incorporating the following features:&lt;/span&gt;&lt;br&gt;&lt;/p&gt;&lt;ul&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(55, 65, 81); font-family: Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&amp;quot;; font-size: 16px; background-color: initial;&quot;&gt;The price dynamically changes and depends on the amountRaised and the time passing.&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(55, 65, 81); font-family: Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&amp;quot;; font-size: 16px; background-color: initial;&quot;&gt;The Whitelist can restrict users who can make purchases.&lt;/span&gt;&lt;/li&gt;&lt;li&gt;&lt;span style=&quot;color: rgb(55, 65, 81); font-family: Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&amp;quot;; font-size: 16px; background-color: initial;&quot;&gt;Bonuses are awarded if users united in a group exceed a threshold; all members obtain bonus tokens, which can be obtained in the next buy operation.&lt;br&gt;&lt;/span&gt;&lt;/li&gt;&lt;/ul&gt;&lt;font face=&quot;Helvetica&quot; color=&quot;#374151&quot; style=&quot;font-size: 16px;&quot;&gt;There are two ways to use FundContract: with and without commissions. &lt;br&gt;Commissions are incurred when a user buys sellingTokens, with the contract sending a fraction to the commission address. &lt;br&gt;For example, we will use the external contract &quot;DistributeLiquidity&quot; as the commission recipient, and anyone can call addLiquidity on it.&lt;br&gt;&lt;/font&gt;&lt;font style=&quot;font-size: 16px;&quot;&gt;&lt;font color=&quot;#374151&quot; face=&quot;Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&quot; style=&quot;font-size: 16px;&quot;&gt;&lt;br&gt;&lt;/font&gt;&lt;font style=&quot;font-size: 16px;&quot; face=&quot;Söhne, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif, Helvetica Neue, Arial, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji&quot; color=&quot;#374151&quot;&gt;We utilize the ERC-20 token (ITR) with additional functionality:&lt;br&gt;&lt;ul&gt;&lt;li&gt;or a certain period. Users cannot transfer tokens until the specified time has passed.&lt;br&gt;&lt;/li&gt;&lt;li&gt;The owner can transfer tokens without restrictions using the standard &quot;transfer&quot; method and impose restrictions by calling &quot;transferWithLockup.&quot; The behavior is the same as if the user bought tokens. This feature can be useful in off-chain sales.&lt;br&gt;&lt;/li&gt;&lt;/ul&gt;&lt;/font&gt;&lt;/font&gt;&lt;br style=&quot;font-size: 16px;&quot;&gt;&lt;p style=&quot;border: 0px solid rgb(217, 217, 227); box-sizing: border-box; --tw-border-spacing-x: 0; --tw-border-spacing-y: 0; --tw-translate-x: 0; --tw-translate-y: 0; --tw-rotate: 0; --tw-skew-x: 0; --tw-skew-y: 0; --tw-scale-x: 1; --tw-scale-y: 1; --tw-pan-x: ; --tw-pan-y: ; --tw-pinch-zoom: ; --tw-scroll-snap-strictness: proximity; --tw-gradient-from-position: ; --tw-gradient-via-position: ; --tw-gradient-to-position: ; --tw-ordinal: ; --tw-slashed-zero: ; --tw-numeric-figure: ; --tw-numeric-spacing: ; --tw-numeric-fraction: ; --tw-ring-inset: ; --tw-ring-offset-width: 0px; --tw-ring-offset-color: #fff; --tw-ring-color: rgba(69,89,164,.5); --tw-ring-offset-shadow: 0 0 transparent; --tw-ring-shadow: 0 0 transparent; --tw-shadow: 0 0 transparent; --tw-shadow-colored: 0 0 transparent; --tw-blur: ; --tw-brightness: ; --tw-contrast: ; --tw-grayscale: ; --tw-hue-rotate: ; --tw-invert: ; --tw-saturate: ; --tw-sepia: ; --tw-drop-shadow: ; --tw-backdrop-blur: ; --tw-backdrop-brightness: ; --tw-backdrop-contrast: ; --tw-backdrop-grayscale: ; --tw-backdrop-hue-rotate: ; --tw-backdrop-invert: ; --tw-backdrop-opacity: ; --tw-backdrop-saturate: ; --tw-backdrop-sepia: ; margin: 1.25em 0px 0px; color: rgb(55, 65, 81); font-family: Söhne, ui-sans-serif, system-ui, -apple-system, &amp;quot;Segoe UI&amp;quot;, Roboto, Ubuntu, Cantarell, &amp;quot;Noto Sans&amp;quot;, sans-serif, &amp;quot;Helvetica Neue&amp;quot;, Arial, &amp;quot;Apple Color Emoji&amp;quot;, &amp;quot;Segoe UI Emoji&amp;quot;, &amp;quot;Segoe UI Symbol&amp;quot;, &amp;quot;Noto Color Emoji&amp;quot;; font-size: 16px;&quot;&gt;&lt;/p&gt;" style="text;html=1;strokeColor=none;fillColor=none;spacing=5;spacingTop=-20;whiteSpace=wrap;overflow=hidden;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="20" y="20" width="430" height="740" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
