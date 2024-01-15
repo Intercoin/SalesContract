@@ -1,11 +1,16 @@
 {
   "name": "@intercoin/fundcontract",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "files": [
+    "/contracts/**/*.sol",
+    "/build/contracts/*.json",
+    "!/contracts/mocks/**/*"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Intercoin/FundContract.git"
