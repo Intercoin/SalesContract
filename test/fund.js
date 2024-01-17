@@ -114,6 +114,7 @@ describe("Fund", function () {
         let timePeriod = 60*24*60*60;
         timestamps = [blockTime+(2*timePeriod), blockTime+(4*timePeriod), blockTime+(6*timePeriod)];
         prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
+        //prices = [100000000, 150000000, 180000000]; // 1 eth got 1 token and so on
         lastTime = parseInt(blockTime)+(8*timePeriod);
 
         FundContractMockF = await ethers.getContractFactory("FundContractMock");    
@@ -432,6 +433,9 @@ describe("Fund", function () {
             var calculatedAmountOfTokens = amountTokenSendToContract.mul(ethDenom).div(ratio_TOKEN2_ITR);
             var accountTwoBalanceExpected = accountTwoBalanceBefore.add(calculatedAmountOfTokens);
 
+            // console.log("prices =", prices);
+            // console.log("amountETHSendToContract    =", (amountETHSendToContract.div(ONE_ETH)).toString());
+            // console.log("calculatedAmountOfTokens   =", (calculatedAmountOfTokens.div(ONE_ETH)).toString());
             expect(accountTwoBalanceActual).to.be.eq(accountTwoBalanceExpected);
 
             let tmp;
@@ -526,7 +530,7 @@ describe("Fund", function () {
                 })
             ).to.be.revertedWith("Amount exceeds allowed balance");
             
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
 
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
             // send ETH to Contract
@@ -539,7 +543,10 @@ describe("Fund", function () {
             var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
             var calculatedAmountOfTokens = amountETHSendToContract.mul(ethDenom).div(ratio_ETH_ITR);
             var accountTwoBalanceExpected = accountTwoBalanceBefore.add(calculatedAmountOfTokens);
-
+            
+            // console.log("prices =", prices);
+            // console.log("amountETHSendToContract    =", (amountETHSendToContract.div(ONE_ETH)).toString());
+            // console.log("calculatedAmountOfTokens   =", (calculatedAmountOfTokens.div(ONE_ETH)).toString());
             expect(accountTwoBalanceActual).to.be.eq(accountTwoBalanceExpected);
             
             // go to end time
