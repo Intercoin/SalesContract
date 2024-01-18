@@ -10,6 +10,7 @@ import "@intercoin/releasemanager/contracts/CostManagerHelperERC2771Support.sol"
 import "@intercoin/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
+import "./interfaces/IERC20Burnable.sol";
 
 abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
 
@@ -344,17 +345,29 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
 
     /**
-    * move all unsold tokens to dead address. used only if initialised with (withdrawOption == EnumWithdraw.never)
+    * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
     */
-    function releaseAllUnsoldTokens() public {
+    function burnAllUnsoldTokens() public {
         if (withdrawOption != EnumWithdraw.never) {
             revert NotSupported();
         }
         
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         if (tokenBalance > 0) {
-            bool success = IERC20Upgradeable(sellingToken).transfer(0x000000000000000000000000000000000000dEaD, tokenBalance);
-            if (!success) {
+
+             // create a low level call to the token
+            (bool lowLevelSuccess, bytes memory returnData) =
+                address(sellingToken).call(
+                    abi.encodePacked(
+                        IERC20Burnable.burn.selector,
+                        abi.encode(tokenBalance)
+                    )
+                );
+            bool returnedBool;
+            if (lowLevelSuccess) { // transferFrom completed successfully (did not revert)
+                (returnedBool) = abi.decode(returnData, (bool));
+            }
+            if (!returnedBool) {
                 revert TransferError();
             }
         }
