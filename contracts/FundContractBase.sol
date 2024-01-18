@@ -10,6 +10,7 @@ import "@intercoin/releasemanager/contracts/CostManagerHelperERC2771Support.sol"
 import "@intercoin/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
+import "./interfaces/IERC20Burnable.sol";
 
 abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
 
@@ -89,6 +90,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error WhitelistError();
     error InvalidInput();
     error InsufficientAmount();
+    error TransferError();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
@@ -257,9 +259,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
     */
     function whitelistAdd(address account) public onlyOwner {
-        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
-           revert WhitelistError(); 
-        }
+        _validateWhitelistForInternalUse();
         _whitelistAdd(account);
     }
 
@@ -267,9 +267,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
     */
     function whitelistRemove(address account) public onlyOwner {
-        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
-           revert WhitelistError(); 
-        }
+        _validateWhitelistForInternalUse();
         _whitelistRemove(account);
     }
     
@@ -300,7 +298,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
 
         uint256 amount2send = (totalIncome*holdTotalFraction/FRACTION);
 
-        if (totalIncome == 0) {
+        if (amount2send == 0) {
             revert InsufficientAmount();
         }
 
@@ -347,8 +345,33 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
-    function availableToClaim() internal view returns(uint256) {
-        return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
+    /**
+    * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
+    */
+    function burnAllUnsoldTokens() public {
+        if (withdrawOption != EnumWithdraw.never) {
+            revert NotSupported();
+        }
+        
+        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        if (tokenBalance > 0) {
+
+             // create a low level call to the token
+            (bool lowLevelSuccess, bytes memory returnData) =
+                address(sellingToken).call(
+                    abi.encodePacked(
+                        IERC20Burnable.burn.selector,
+                        abi.encode(tokenBalance)
+                    )
+                );
+            bool returnedBool;
+            if (lowLevelSuccess) { // transferFrom completed successfully (did not revert)
+                (returnedBool) = abi.decode(returnData, (bool));
+            }
+            if (!returnedBool) {
+                revert TransferError();
+            }
+        }
     }
     
     /**
@@ -421,6 +444,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
+    function availableToClaim() internal view returns(uint256) {
+        return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
+    }
+    
     function _msgSender(
     ) 
         internal 
@@ -639,6 +666,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                
         } else {
             totalInvestedGroupOutside[addr] += ethAmount;    
+        }
+    }
+
+    function _validateWhitelistForInternalUse() internal view {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
         }
     }
     

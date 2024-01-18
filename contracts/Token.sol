@@ -7,10 +7,12 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import "@intercoin/minimums/contracts/MinimumsBase.sol";
+
+import "./interfaces/IERC20Burnable.sol";
 /**
  * @title Token with the ability to lock up tokens after transfer for specific users.
  */
-contract Token is ERC20, Ownable, MinimumsBase {
+contract Token is ERC20, Ownable, MinimumsBase, IERC20Burnable {
     using EnumerableSet for EnumerableSet.AddressSet;
     uint32 constant interval = 86400; // 1 day
 
@@ -77,6 +79,11 @@ contract Token is ERC20, Ownable, MinimumsBase {
                 false               //bool gradual
             );
         }
+    }
+
+    function burn(uint256 amount) external returns(bool) {
+        _burn(msg.sender, amount);
+        return true;
     }
     
 }

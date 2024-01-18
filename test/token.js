@@ -48,7 +48,7 @@ describe("ITR", function () {
     beforeEach("deploying", async() => {
         var tokenF = await ethers.getContractFactory("Token");    
         token = await tokenF.connect(owner).deploy('ITR','ITR', InitialSupply);
-    })
+    });
 
     it("The owner can to add lockups to anyone", async() => {
         await expect(
@@ -210,6 +210,43 @@ describe("ITR", function () {
         expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
         expect(await token.balanceOf(accountTwo.address)).to.be.eq(ZERO);
         expect(await token.balanceOf(accountThree.address)).to.be.eq(amountToTransfer);
+    });
+
+    it("user can burn own tokens", async() => {
+
+        var amountToBurn = HUNDRED.mul(ONE_ETH);
+
+        expect(await token.balanceOf(accountOne.address)).to.be.eq(ZERO);
+
+        await token.connect(owner).transfer(accountOne.address, amountToBurn);
+
+        expect(await token.balanceOf(accountOne.address)).to.be.eq(amountToBurn);
+        expect(await token.totalSupply()).to.be.eq(InitialSupply);
+
+        await token.connect(accountOne).burn(amountToBurn);
+
+        expect(await token.balanceOf(accountOne.address)).to.be.eq(ZERO);
+        expect(await token.totalSupply()).to.be.eq(InitialSupply.sub(amountToBurn));
+
+    });
+
+    it("contract can burn own tokens", async() => {
+        var amountToBurn = HUNDRED.mul(ONE_ETH);
+
+        var fundF = await ethers.getContractFactory("MockTransferContract");    
+        var fund = await fundF.connect(owner).deploy();
+
+        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+
+        await token.connect(owner).transfer(fund.address, amountToBurn);
+
+        expect(await token.balanceOf(fund.address)).to.be.eq(amountToBurn);
+        expect(await token.totalSupply()).to.be.eq(InitialSupply);
+
+        await fund.burnOwnTokens(token.address, amountToBurn);
+
+        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+        expect(await token.totalSupply()).to.be.eq(InitialSupply.sub(amountToBurn));
     });
 
 });
