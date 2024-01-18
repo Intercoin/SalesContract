@@ -256,9 +256,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
     */
     function whitelistAdd(address account) public onlyOwner {
-        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
-           revert WhitelistError(); 
-        }
+        _validateWhitelistForInternalUse();
         _whitelistAdd(account);
     }
 
@@ -266,9 +264,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
     */
     function whitelistRemove(address account) public onlyOwner {
-        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
-           revert WhitelistError(); 
-        }
+        _validateWhitelistForInternalUse();
         _whitelistRemove(account);
     }
     
@@ -567,6 +563,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                
         } else {
             totalInvestedGroupOutside[addr] += ethAmount;    
+        }
+    }
+
+    function _validateWhitelistForInternalUse() internal {
+        if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
+           revert WhitelistError(); 
         }
     }
     
