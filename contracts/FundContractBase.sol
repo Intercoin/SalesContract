@@ -89,6 +89,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error WhitelistError();
     error InvalidInput();
     error InsufficientAmount();
+    error TransferError();
 
     modifier validGasPrice() {
         require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
@@ -342,8 +343,21 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
-    function availableToClaim() internal view returns(uint256) {
-        return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
+    /**
+    * move all unsold tokens to dead address. used only if initialised with (withdrawOption == EnumWithdraw.never)
+    */
+    function releaseAllUnsoldTokens() public {
+        if (withdrawOption != EnumWithdraw.never) {
+            revert NotSupported();
+        }
+        
+        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        if (tokenBalance > 0) {
+            bool success = IERC20Upgradeable(sellingToken).transfer(0x000000000000000000000000000000000000dEaD, tokenBalance);
+            if (!success) {
+                revert TransferError();
+            }
+        }
     }
     
     /**
@@ -416,6 +430,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         );
     }
 
+    function availableToClaim() internal view returns(uint256) {
+        return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
+    }
+    
     function _msgSender(
     ) 
         internal 
@@ -566,7 +584,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         }
     }
 
-    function _validateWhitelistForInternalUse() internal {
+    function _validateWhitelistForInternalUse() internal view {
         if ((!whitelist.useWhitelist) || (whitelist.useWhitelist && (whitelist.contractAddress != address(0)))) {
            revert WhitelistError(); 
         }
