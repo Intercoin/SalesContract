@@ -299,7 +299,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
 
         uint256 amount2send = (totalIncome*holdTotalFraction/FRACTION);
 
-        if (totalIncome == 0) {
+        if (amount2send == 0) {
             revert InsufficientAmount();
         }
 
