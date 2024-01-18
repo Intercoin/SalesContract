@@ -214,7 +214,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _addBonus(
             sender, 
             inputAmount,
-            tokenPrice
+            tokenPrice,
+            true
         );
         
         return amount2send;
@@ -226,7 +227,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param addr address to send
      */
     function withdraw(uint256 amount, address addr) public validateWithdraw {
-        _sendTokens(amount, addr);
+        _sendTokens(amount, addr, true);
 
         emit Withdrawn(amount, addr);
         _accountForOperation(
@@ -243,7 +244,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         uint256 amount = IERC20Upgradeable(sellingToken).balanceOf(address(this));
 
         emit Withdrawn(amount, _msgSender());
-        _sendTokens(amount, _msgSender());
+        _sendTokens(amount, _msgSender(), true);
 
         _accountForOperation(
             OPERATION_WITHDRAW_ALL << OPERATION_SHIFT_BITS,
@@ -474,18 +475,86 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param amount amount of tokens
      * @param addr address to send
      */
-    function _sendTokens(uint256 amount, address addr) internal {
+    // function _sendTokens(uint256 amount, address addr) internal {
         
-        require(amount>0, "Amount can not be zero");
-        require(addr != address(0), "address can not be empty");
+    //     require(amount>0, "Amount can not be zero");
+    //     require(addr != address(0), "address can not be empty");
         
-        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount, "Amount exceeds allowed balance");
+    //     uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+    //     require(tokenBalance >= amount, "Amount exceeds allowed balance");
         
-        bool success = IERC20Upgradeable(sellingToken).transfer(addr, amount);
-        require(success == true, "Transfer tokens were failed"); 
+    //     bool success = IERC20Upgradeable(sellingToken).transfer(addr, amount);
+    //     require(success == true, "Transfer tokens were failed"); 
+    // }
+
+    /**
+     * @param amount amount of tokens
+     * @param addr address to send
+     * @param revertWhenError if true - tx will revert if error happens
+     * @return success true if all ok. and false - if revertWhenError == false and tx have exceptions
+     */
+    function _sendTokens(uint256 amount, address addr, bool revertWhenError) internal returns(bool success) {
+        //
+        success = true;
+
+        //require(amount>0, "Amount can not be zero");
+        if (amount == 0) {
+            if (revertWhenError) { 
+                revert("Amount can not be zero");
+            } else {
+                success = false;
+            }
+        }
+
+        //require(addr != address(0), "address can not be empty");
+        if (success && addr == address(0)) {
+            if (revertWhenError) { 
+                revert("address can not be empty");
+            } else {
+                success = false;
+            }
+        }
+
+        if (success) {
+            uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+            if (tokenBalance < amount) {
+                if (revertWhenError) { 
+                    revert("Amount exceeds allowed balance");
+                } else {
+                    success = false;
+                }
+            }
+        }
+
+        if (success) {
+            // create a low level call to the token
+            (bool lowLevelSuccess, bytes memory returnData) =
+                address(sellingToken).call(
+                    abi.encodePacked(
+                        IERC20Upgradeable.transfer.selector,
+                        abi.encode(addr, amount)
+                    )
+                );
+            bool returnedBool;
+            if (lowLevelSuccess) { // transferFrom completed successfully (did not revert)
+                (returnedBool) = abi.decode(returnData, (bool));
+            }
+            // if lowLevelSuccess == false  - it's tx revert
+            // if returnedBool == false - tx is ok but method return false
+            // but in our case - See {IERC20-transfer}, method will always return true or tx will revert ;)
+
+            require(revertWhenError && returnedBool == true, "Transfer tokens were failed"); 
+            if (returnedBool == false) {
+                if (revertWhenError) { 
+                    revert("Transfer tokens were failed");
+                } else {
+                    success = false;
+                }
+            }
+        }
+
     }
-    
+ 
     /**
      * @param addr address which need to link with group
      * @param groupName group name. if does not exists it will be created
@@ -513,7 +582,8 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                 _addBonus(
                     addr,
                     totalInvestedGroupOutside[addr],
-                    tokenPrice
+                    tokenPrice,
+                    true
                 );
             }
             
@@ -525,11 +595,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param addr Address of participant
      * @param ethAmount amount
      * @param tokenPrice price ratio ETH -> token
+     * @param revertIfCantSendTokens revert if tokens are not enough when  contract will try to send bonuses to users
      */
     function _addBonus(
         address addr, 
         uint256 ethAmount,
-        uint256 tokenPrice
+        uint256 tokenPrice,
+        bool revertIfCantSendTokens
     ) 
         internal 
         virtual
@@ -558,7 +630,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                     uint256 amount2Send = participantTotalBonusTokens - participants[participantAddr].contributed;
                     participants[participantAddr].contributed = participantTotalBonusTokens;
                   
-                    _sendTokens(amount2Send, participantAddr);
+                    _sendTokens(amount2Send, participantAddr, revertIfCantSendTokens);
                     
                 }
             }
