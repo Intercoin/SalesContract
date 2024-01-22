@@ -256,16 +256,16 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
 
     /**
-    * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
-    */
+     * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
+     */
     function whitelistAdd(address account) public onlyOwner {
         _validateWhitelistForInternalUse();
         _whitelistAdd(account);
     }
 
     /**
-    * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
-    */
+     * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
+     */
     function whitelistRemove(address account) public onlyOwner {
         _validateWhitelistForInternalUse();
         _whitelistRemove(account);
@@ -290,9 +290,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             amount
         );
     }
+
     /**
-    * @notice send commission to the addresses `commissionAddresses`
-    */
+     * @notice send commission to the addresses `commissionAddresses`
+     */
     function sendCommissions() public {
         require(_endTime < block.timestamp, "FundContract: Exchange time should be passed");
 
@@ -346,12 +347,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
 
     /**
-    * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
-    */
+     * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
+     */
     function burnAllUnsoldTokens() public {
         if (withdrawOption != EnumWithdraw.never) {
             revert NotSupported();
         }
+        require(_endTime < block.timestamp, "FundContract: Exchange time should be passed");   
         
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
         if (tokenBalance > 0) {
@@ -372,6 +374,33 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                 revert TransferError();
             }
         }
+    }
+
+    function continueSale(
+        uint64[] memory _timestamps,
+        uint256[] memory _prices,
+        uint256[] memory _amountRaised,
+        uint64 _endTs
+    ) 
+        public 
+        onlyOwner 
+    {
+        if (withdrawOption != EnumWithdraw.never) {
+            revert NotSupported();
+        }
+
+        require(_endTs > block.timestamp && _endTs > _endTime , "FundContract: Exchange time should be passed");   
+        
+        for(uint256 i = 0; i < _timestamps.length; i++) {
+            if (_timestamps[i] < _endTime) {
+                revert InvalidInput();
+            }
+        }
+        timestamps = _timestamps;
+        prices = _prices;
+        amountRaised = _amountRaised;
+        _endTime = _endTs;
+
     }
     
     /**
