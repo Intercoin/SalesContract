@@ -89,11 +89,20 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error WithdrawDisabled();
     error WhitelistError();
     error InvalidInput();
+    error AddressInvalid();
+    error GroupNameInvalid();
     error InsufficientAmount();
     error TransferError();
+    error MaxGasPriceExceeded();
+    error ExchangeTimeIsOver();
+    error ExchangeTimeShouldBePassed();
+    error CantCalculateAmountOfTokens();
 
     modifier validGasPrice() {
-        require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
+        //require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
+        if (tx.gasprice > maxGasPrice) {
+            revert MaxGasPriceExceeded();
+        }
         _;
     } 
 
@@ -133,7 +142,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         __Ownable_init();
         __ReentrancyGuard_init();
         
-        require(_sellingToken != address(0), "FundContract: _sellingToken can not be zero");
+        if (_sellingToken == address(0)) {
+            revert InvalidInput();
+        }
         
         sellingToken = _sellingToken;
         timestamps = _timestamps;
@@ -195,21 +206,29 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             revert WhitelistError(); 
         }
 
-        require(_endTime > block.timestamp, "FundContract: Exchange time is over");
+        if (_endTime <= block.timestamp) {
+            revert ExchangeTimeIsOver();
+        }
         
         uint256 tokenPrice = getTokenPrice();
         
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
-        require(amount2send > 0, "FundContract: Can not calculate amount of tokens");                                       
+        if (amount2send == 0) {
+            revert CantCalculateAmountOfTokens();
+        }
 
         totalIncome += inputAmount;
         totalAmountRaised += amount2send;
 
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-        require(tokenBalance >= amount2send, "Amount exceeds allowed balance");
+        if (tokenBalance < amount2send) {
+            revert InsufficientAmount();
+        }
         
         bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            revert TransferError();
+        }
         
         emit Exchange(sender, inputAmount, amount2send);
         // bonus calculation
@@ -256,16 +275,16 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
 
     /**
-    * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
-    */
+     * @notice adding account into a internal whitelist.  worked only if instance initialized with internal whitelist
+     */
     function whitelistAdd(address account) public onlyOwner {
         _validateWhitelistForInternalUse();
         _whitelistAdd(account);
     }
 
     /**
-    * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
-    */
+     * @notice removing account from a internal whitelist.  worked only if instance initialized with internal whitelist
+     */
     function whitelistRemove(address account) public onlyOwner {
         _validateWhitelistForInternalUse();
         _whitelistRemove(account);
@@ -290,27 +309,32 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             amount
         );
     }
-    /**
-    * @notice send commission to the addresses `commissionAddresses`
-    */
-    function sendCommissions() public {
-        require(_endTime < block.timestamp, "FundContract: Exchange time should be passed");
 
-        uint256 amount2send = (totalIncome*holdTotalFraction/FRACTION);
+    /**
+     * @notice send commission to the addresses `commissionAddresses`
+     */
+    function sendCommissions() public nonReentrant {
+        if (_endTime >= block.timestamp) {
+            revert ExchangeTimeShouldBePassed();
+        }
+
+        uint256 totalIncomeLeftToPaid = totalIncome - holdTotalAlreadyPayed;
+        holdTotalAlreadyPayed += totalIncome;
+
+        uint256 amount2send = (totalIncomeLeftToPaid*holdTotalFraction/FRACTION);
 
         if (amount2send == 0) {
             revert InsufficientAmount();
         }
-
+        
         for (uint256 i = 0; i<commissionAddresses.length; i++) {
             _claim(
-                totalIncome * commissionFractions[i] / FRACTION, 
+                totalIncomeLeftToPaid * commissionFractions[i] / FRACTION, 
                 commissionAddresses[i]
             );
         }
 
         emit CommissionsWasSent(amount2send, commissionAddresses);
-        
     }
     
     /**
@@ -346,11 +370,14 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
 
     /**
-    * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
-    */
+     * burn all unsold tokens. used only if initialised with (withdrawOption == EnumWithdraw.never)
+     */
     function burnAllUnsoldTokens() public {
         if (withdrawOption != EnumWithdraw.never) {
             revert NotSupported();
+        }
+        if (_endTime >= block.timestamp) {
+            revert ExchangeTimeShouldBePassed();
         }
         
         uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
@@ -372,6 +399,35 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
                 revert TransferError();
             }
         }
+    }
+
+    function continueSale(
+        uint64[] memory _timestamps,
+        uint256[] memory _prices,
+        uint256[] memory _amountRaised,
+        uint64 _endTs
+    ) 
+        public 
+        onlyOwner 
+    {
+        if (withdrawOption != EnumWithdraw.never) {
+            revert NotSupported();
+        }
+
+        if (_endTs <= block.timestamp || _endTs <= _endTime) {
+            revert ExchangeTimeShouldBePassed();
+        }
+        
+        for(uint256 i = 0; i < _timestamps.length; i++) {
+            if (_timestamps[i] < _endTime) {
+                revert InvalidInput();
+            }
+        }
+        timestamps = _timestamps;
+        prices = _prices;
+        amountRaised = _amountRaised;
+        _endTime = _endTs;
+
     }
     
     /**
@@ -527,7 +583,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         //require(amount>0, "Amount can not be zero");
         if (amount == 0) {
             if (revertWhenError) { 
-                revert("Amount can not be zero");
+                revert InvalidInput();
             } else {
                 success = false;
             }
@@ -536,7 +592,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         //require(addr != address(0), "address can not be empty");
         if (success && addr == address(0)) {
             if (revertWhenError) { 
-                revert("address can not be empty");
+                revert AddressInvalid();
             } else {
                 success = false;
             }
@@ -546,38 +602,39 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
             if (tokenBalance < amount) {
                 if (revertWhenError) { 
-                    revert("Amount exceeds allowed balance");
+                    revert InsufficientAmount();
                 } else {
                     success = false;
                 }
             }
         }
 
+        bool lowLevelSuccess;
+        bytes memory returnData;
+        bool returnedBool;
         if (success) {
             // create a low level call to the token
-            (bool lowLevelSuccess, bytes memory returnData) =
+            //lowLevelSuccess
+            (lowLevelSuccess, returnData) =
                 address(sellingToken).call(
                     abi.encodePacked(
                         IERC20Upgradeable.transfer.selector,
                         abi.encode(addr, amount)
                     )
                 );
-            bool returnedBool;
-            if (lowLevelSuccess) { // transferFrom completed successfully (did not revert)
-                (returnedBool) = abi.decode(returnData, (bool));
-            }
-            // if lowLevelSuccess == false  - it's tx revert
-            // if returnedBool == false - tx is ok but method return false
-            // but in our case - See {IERC20-transfer}, method will always return true or tx will revert ;)
-
-            require(revertWhenError && returnedBool == true, "Transfer tokens were failed"); 
-            if (returnedBool == false) {
-                if (revertWhenError) { 
-                    revert("Transfer tokens were failed");
-                } else {
-                    success = false;
-                }
-            }
+            success = lowLevelSuccess;
+        }
+        if (success) {
+            //returnedBool
+            (returnedBool) = abi.decode(returnData, (bool));
+            success = returnedBool;
+        }
+        
+        // if lowLevelSuccess == false  - it's tx revert
+        // if returnedBool == false - tx is ok but method return false
+        // but in our case - See {IERC20-transfer}, method will always return true or tx will revert ;)
+        if (revertWhenError && !success) {
+            revert TransferError();    
         }
 
     }
@@ -587,8 +644,12 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * @param groupName group name. if does not exists it will be created
      */
     function _setGroup(address addr, string memory groupName) internal {
-        require(addr != address(0), "address can not be empty");
-        require(bytes(groupName).length != 0, "groupName can not be empty");
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
+        if (bytes(groupName).length == 0) {
+            revert GroupNameInvalid();
+        }
         
         uint256 tokenPrice = getTokenPrice();
         

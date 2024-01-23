@@ -141,14 +141,18 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         );
         
         // __FundContractToken__init(_payToken);
-        require(_payToken != address(0), "FundContractToken: _payToken can not be zero");
+        if (_payToken == address(0)) {
+            revert AddressInvalid();
+        }
         payToken = _payToken;
     }
     
     function buy(uint256 amount) public {
         
         bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            revert TransferError();
+        }
         
         _exchange(amount); 
 
@@ -164,12 +168,18 @@ contract FundContractToken is FundContractBase, IFundContractToken {
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal override {
-        
-        require(IERC20Upgradeable(payToken).balanceOf(address(this)) >= amount, "Amount exceeds allowed balance");
-        require(addr != address(0), "address can not be empty");
+        if (IERC20Upgradeable(payToken).balanceOf(address(this)) < amount) {
+            revert InsufficientAmount();
+        }
+
+        if (addr == address(0)) {
+            revert AddressInvalid();
+        }
         
         bool success = IERC20Upgradeable(payToken).transfer(addr, amount); 
-        require(success == true, "Transfer tokens were failed"); 
+        if (!success) {
+            revert TransferError();   
+        }
         
     }
     
