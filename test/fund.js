@@ -530,7 +530,7 @@ describe("Fund", function () {
                     to: FundContractInstance.address, 
                     value: amountETHSendToContract
                 })
-            ).to.be.revertedWith("Amount exceeds allowed balance");
+            ).to.be.revertedWith("InsufficientAmount");
             
             await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
 
@@ -1018,7 +1018,7 @@ describe("Fund", function () {
 
                 await expect(
                     FundContractInstance.connect(accountFourth).sendCommissions()
-                ).to.be.revertedWith('FundContract: Exchange time should be passed');
+                ).to.be.revertedWith('ExchangeTimeShouldBePassed');
 
                 //time
                 // go to end time
@@ -1171,7 +1171,7 @@ describe("Fund", function () {
                 
                 await expect(
                     FundContractInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime)
-                ).to.be.revertedWith('FundContract: Exchange time should be passed');
+                ).to.be.revertedWith('ExchangeTimeShouldBePassed');
             });
 
             it('"timestamp" should be more that previous "lastTime"', async () => {
@@ -1310,7 +1310,7 @@ describe("Fund", function () {
 
                     await expect(
                         FundContractInstance.connect(accountOne).burnAllUnsoldTokens()
-                    ).to.be.revertedWith("FundContract: Exchange time should be passed");
+                    ).to.be.revertedWith("ExchangeTimeShouldBePassed");
 
                     // go to end time
                     await ethers.provider.send('evm_increaseTime', [parseInt(lastTime+20*timePeriod-currentBlockTimeBeforeSend)]);
