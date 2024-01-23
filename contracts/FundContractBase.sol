@@ -137,7 +137,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         __Ownable_init();
         __ReentrancyGuard_init();
         
-        require(_sellingToken != address(0), "FundContract: _sellingToken can not be zero");
+        if (_sellingToken == address(0)) {
+            revert InvalidInput();
+        }
         
         sellingToken = _sellingToken;
         timestamps = _timestamps;
