@@ -896,7 +896,7 @@ describe("Fund", function () {
             expect(accountOneBalanceAfter).to.be.eq(base.add(base.mul(20).div(100)));
         });
 
-        describe.only("test commissions", function () {
+        describe("test commissions", function () {
             var ERC20MintableInstance, FundContractInstance;
             var accountEightBalanceBefore, accountNineBalanceBefore, accountElevenBalanceBefore;
             var accountOneBalanceBefore, accountTwoBalanceBefore, accountThreeBalanceBefore;
@@ -1066,7 +1066,7 @@ describe("Fund", function () {
                     await accountThree.sendTransaction({to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
                 });
 
-                it.only('buy the same as before and get commissions', async () => {
+                it('buy the same as before and get commissions', async () => {
                     await accountOne.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
                     await accountTwo.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
                     await accountThree.sendTransaction({to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
@@ -1079,21 +1079,18 @@ describe("Fund", function () {
                     var accountEightBalanceAfter2 = (await ethers.provider.getBalance(accountEight.address));
                     var accountNineBalanceAfter2 = (await ethers.provider.getBalance(accountNine.address));
                     var accountElevenBalanceAfter2 = (await ethers.provider.getBalance(accountEleven.address));
-console.log(accountEightBalanceBefore.toString());
-console.log(accountEightBalanceAfter.toString());
-console.log(accountEightBalanceAfter2.toString());
+
                     // first commissions 
                     expect(accountEightBalanceAfter.sub(accountEightBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
                     expect(accountNineBalanceAfter.sub(accountNineBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(2000)).div(FRACTION));
                     expect(accountElevenBalanceAfter.sub(accountElevenBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
 
-                    expect(accountEightBalanceAfter2.sub(accountEightBalanceBefore)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION).mul(TWO));
-/*
+
                     // after commissions will be the same
                     expect(accountEightBalanceAfter2.sub(accountEightBalanceAfter)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
                     expect(accountNineBalanceAfter2.sub(accountNineBalanceAfter)).to.be.eq(TotalETHToSend.mul(BigNumber.from(2000)).div(FRACTION));
                     expect(accountElevenBalanceAfter2.sub(accountElevenBalanceAfter)).to.be.eq(TotalETHToSend.mul(BigNumber.from(1000)).div(FRACTION));
-                    */
+
 
                 });
             });

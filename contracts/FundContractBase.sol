@@ -294,24 +294,26 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     /**
      * @notice send commission to the addresses `commissionAddresses`
      */
-    function sendCommissions() public {
+    function sendCommissions() public nonReentrant {
         require(_endTime < block.timestamp, "FundContract: Exchange time should be passed");
 
-        uint256 amount2send = (totalIncome*holdTotalFraction/FRACTION);
+        uint256 totalIncomeLeftToPaid = totalIncome - holdTotalAlreadyPayed;
+        holdTotalAlreadyPayed += totalIncome;
+
+        uint256 amount2send = (totalIncomeLeftToPaid*holdTotalFraction/FRACTION);
 
         if (amount2send == 0) {
             revert InsufficientAmount();
         }
-
+        
         for (uint256 i = 0; i<commissionAddresses.length; i++) {
             _claim(
-                totalIncome * commissionFractions[i] / FRACTION, 
+                totalIncomeLeftToPaid * commissionFractions[i] / FRACTION, 
                 commissionAddresses[i]
             );
         }
 
         emit CommissionsWasSent(amount2send, commissionAddresses);
-        
     }
     
     /**
