@@ -91,9 +91,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     error InvalidInput();
     error InsufficientAmount();
     error TransferError();
+    error MaxGasPriceExceeded();
 
     modifier validGasPrice() {
-        require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
+        //require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
+        if (tx.gasprice > maxGasPrice) {
+            revert MaxGasPriceExceeded();
+        }
         _;
     } 
 
