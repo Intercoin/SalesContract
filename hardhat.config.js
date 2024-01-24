@@ -30,8 +30,9 @@ module.exports = {
       gasLimit: 22000000,
       //chainId: 0x89,
       forking: {
-        url: mainnetURL
+        //url: mainnetURL
         //url: maticURL
+        url: bscURL
       }
     },
     kovan: {

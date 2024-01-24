@@ -11,8 +11,12 @@ import "@intercoin/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
 import "./interfaces/IFundStructs.sol";
 import "./interfaces/IERC20Burnable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs {
+import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
+
+abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs, IERC777RecipientUpgradeable, IERC777SenderUpgradeable {
 
     address public sellingToken;
     uint64[] public timestamps;
@@ -53,6 +57,10 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     uint8 internal constant OPERATION_SETGROUP = 0x5;
     uint8 internal constant OPERATION_SET_TRUSTED_FORWARDER = 0x6;
     uint8 internal constant OPERATION_TRANSFER_OWNERSHIP = 0x7;
+
+    IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
+    bytes32 private constant _TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
+    bytes32 private constant _TOKENS_RECIPIENT_INTERFACE_HASH = keccak256("ERC777TokensRecipient");
 
     struct Participant {
         string groupName;
@@ -156,6 +164,32 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         withdrawOption = _ownerCanWithdraw;
 
         whitelistInit(_whitelistData);
+
+        // register interfaces
+        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), _TOKENS_SENDER_INTERFACE_HASH, address(this));
+        _ERC1820_REGISTRY.setInterfaceImplementer(address(this), _TOKENS_RECIPIENT_INTERFACE_HASH, address(this));
+    }
+
+    function tokensToSend(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external {
+
+    }
+
+    function tokensReceived(
+        address operator,
+        address from,
+        address to,
+        uint256 amount,
+        bytes calldata userData,
+        bytes calldata operatorData
+    ) external {
+
     }
     
     /**
