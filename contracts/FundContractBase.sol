@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC777/ERC777Upgradeable.sol"; // interface does not contain transfer method needed for erc20 compatible
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
@@ -178,7 +178,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         bytes calldata userData,
         bytes calldata operatorData
     ) external {
-
+        
     }
 
     function tokensReceived(
@@ -189,7 +189,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         bytes calldata userData,
         bytes calldata operatorData
     ) external {
-
+        
     }
     
     /**
@@ -254,15 +254,17 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         totalIncome += inputAmount;
         totalAmountRaised += amount2send;
 
-        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        uint256 tokenBalance = IERC777Upgradeable(sellingToken).balanceOf(address(this));
         if (tokenBalance < amount2send) {
             revert InsufficientAmount();
         }
+
+        // bool success = ERC777Upgradeable(sellingToken).transfer(sender, amount2send);
+        // if (!success) {
+        //     revert TransferError();
+        // }
+        ERC777Upgradeable(sellingToken).send(sender, amount2send, "");
         
-        bool success = IERC20Upgradeable(sellingToken).transfer(sender, amount2send);
-        if (!success) {
-            revert TransferError();
-        }
         
         emit Exchange(sender, inputAmount, amount2send);
         // bonus calculation
@@ -296,7 +298,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
      * withdraw all tokens to owner
      */
     function withdrawAll() public validateWithdraw {
-        uint256 amount = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        uint256 amount = IERC777Upgradeable(sellingToken).balanceOf(address(this));
 
         emit Withdrawn(amount, _msgSender());
         _sendTokens(amount, _msgSender(), true);
@@ -414,7 +416,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             revert ExchangeTimeShouldBePassed();
         }
         
-        uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+        uint256 tokenBalance = IERC777Upgradeable(sellingToken).balanceOf(address(this));
         if (tokenBalance > 0) {
 
              // create a low level call to the token
@@ -633,7 +635,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         }
 
         if (success) {
-            uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
+            uint256 tokenBalance = IERC777Upgradeable(sellingToken).balanceOf(address(this));
             if (tokenBalance < amount) {
                 if (revertWhenError) { 
                     revert InsufficientAmount();
@@ -652,7 +654,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             (lowLevelSuccess, returnData) =
                 address(sellingToken).call(
                     abi.encodePacked(
-                        IERC20Upgradeable.transfer.selector,
+                        ERC777Upgradeable.transfer.selector,
                         abi.encode(addr, amount)
                     )
                 );
