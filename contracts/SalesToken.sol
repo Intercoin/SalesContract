@@ -2,12 +2,8 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IFundContractAggregator.sol";
-import "./FundContractBase.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
-import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./libs/FixedPoint.sol";
-import "./libs/SwapSettingsLib.sol";
+import "./interfaces/ISalesToken.sol";
+import "./SalesBase.sol";
 /**
 *****************
 TEMPLATE CONTRACT
@@ -75,20 +71,21 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract FundContractAggregator is FundContractBase, IFundContractAggregator {
-    using FixedPoint for *;
-    
-    // true if token0 == uniswapPair.token0()
-    bool internal token00; 
-
-    address uniswapV2Pair;
-    
-    uint256 price;
+contract SalesToken is SalesBase, ISalesToken {
+    address internal payToken;
     
     /**
+     * exchange eth to token via ratios ETH/<token>
+     */
+    receive() external payable  {
+        revert NotSupported();
+       //_exchange(msg.value);
+    }
+    
+
+    /**
+     * @param _payToken address of ITR token
      * @param _sellingToken address of ITR token
-     * @param _token0 USD Coin
-     * @param _token1 Wrapped token (WETH,WBNB,...)
      * @param _timestamps array of timestamps
      * @param _prices price exchange
      * @param _amountRaised raised amount
@@ -107,9 +104,8 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
      * @param _costManager costmanager address
      */
      function init(
+        address _payToken,
         address _sellingToken,
-        address _token0,
-        address _token1,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
         uint256[] memory _amountRaised,
@@ -122,11 +118,10 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
         address _producedBy
     ) 
         public
-        virtual
-        override
         initializer
+        override
     {
-        __FundContractBase__init(
+        __SalesBase__init(
             _sellingToken, 
             _timestamps,
             _prices,
@@ -139,79 +134,41 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
             _costManager
         );
 
-// setup swap addresses
-        address uniswapRouterFactory;
-        (, uniswapRouterFactory) = SwapSettingsLib.netWorkSettings();
-        
-        uniswapV2Pair = IUniswapV2Factory(uniswapRouterFactory).getPair(_token0, _token1);
-
-        if (_token0 == IUniswapV2Pair(uniswapV2Pair).token0()) {
-            token00 = true;
-        } else {
-            token00 = false;
-        }
         _accountForOperation(
             OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
             uint256(uint160(_producedBy)),
-            1 // type
+            2 // type
         );
         
-        
-         // (10**18*(r0<<112)/r1)>>112
-        // pair 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc
-        // usdt eth 
-        // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
-        // 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
-
+        // __SalesToken__init(_payToken);
+        if (_payToken == address(0)) {
+            revert AddressInvalid();
+        }
+        payToken = _payToken;
     }
     
-  
-    /**
-     * exchange eth to token via ratios ETH/<token>
-     */
-    receive() external payable validGasPrice nonReentrant() {
-        // potentionally usd amount if user made swap from weth to usdc
-        uint256 usdValue = getUSDFromETH(msg.value);
-        _exchange(usdValue);
+    function buy(uint256 amount) public {
+        
+        bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
+        if (!success) {
+            revert TransferError();
+        }
+        
+        _exchange(amount); 
 
         _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
             uint256(uint160(_msgSender())),
-            usdValue
+            amount
         );
     }
-    
-    function getPrice() internal view returns(FixedPoint.uq112x112 memory price_) {
-        uint112 reserve0;
-        uint112 reserve1;
-        
-        (reserve0, reserve1, ) = IUniswapV2Pair(uniswapV2Pair).getReserves();
-        if (reserve0 == 0 || reserve1 == 0) {
-            // Exclude case when reserves are empty
-        } else {
-            
-            if (token00) {
-                price_ = FixedPoint.fraction(reserve0,reserve1);
-            } else {
-                price_ = FixedPoint.fraction(reserve1,reserve0);
-            }
-        
-        }
 
-    }
-    
-    function getUSDFromETH(uint256 amount) internal view returns(uint256 convertedAmount) {
-        
-        convertedAmount = 1e2*(getPrice().mul(amount)).decode144();
-        
-    }
-   
     /**
      * @param amount amount of eth
      * @param addr address to send
      */
     function _claim(uint256 amount, address addr) internal override {
-        if (address(this).balance < amount) {
+        if (IERC20Upgradeable(payToken).balanceOf(address(this)) < amount) {
             revert InsufficientAmount();
         }
 
@@ -219,15 +176,15 @@ contract FundContractAggregator is FundContractBase, IFundContractAggregator {
             revert AddressInvalid();
         }
         
-        address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
-        bool success = addr1.send(amount);
+        bool success = IERC20Upgradeable(payToken).transfer(addr, amount); 
         if (!success) {
             revert TransferError();   
         }
+        
     }
     
     function getContractTotalAmount() internal view virtual override returns(uint256) {
-        return address(this).balance;
+        return IERC20Upgradeable(payToken).balanceOf(address(this));
     }
- 
+    
 }

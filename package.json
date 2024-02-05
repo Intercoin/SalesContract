@@ -1,6 +1,6 @@
 {
-  "name": "@intercoin/fundcontract",
-  "version": "1.0.7",
+  "name": "@intercoin/sales",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -9,6 +9,7 @@
   "files": [
     "/contracts/**/*.sol",
     "/build/contracts/*.json",
+    "!/contracts/bak/**/*.sol",
     "!/contracts/mocks/**/*"
   ],
   "repository": {

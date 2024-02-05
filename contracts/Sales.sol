@@ -2,8 +2,8 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/IFundContractToken.sol";
-import "./FundContractBase.sol";
+import "./interfaces/ISales.sol";
+import "./SalesBase.sol";
 /**
 *****************
 TEMPLATE CONTRACT
@@ -71,20 +71,9 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract FundContractToken is FundContractBase, IFundContractToken {
-    address internal payToken;
-    
+contract Sales is SalesBase, ISales {
+        
     /**
-     * exchange eth to token via ratios ETH/<token>
-     */
-    receive() external payable  {
-        revert NotSupported();
-       //_exchange(msg.value);
-    }
-    
-
-    /**
-     * @param _payToken address of ITR token
      * @param _sellingToken address of ITR token
      * @param _timestamps array of timestamps
      * @param _prices price exchange
@@ -104,7 +93,6 @@ contract FundContractToken is FundContractBase, IFundContractToken {
      * @param _costManager costmanager address
      */
      function init(
-        address _payToken,
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
@@ -118,10 +106,11 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         address _producedBy
     ) 
         public
-        initializer
+        virtual
         override
+        initializer
     {
-        __FundContractBase__init(
+        __SalesBase__init(
             _sellingToken, 
             _timestamps,
             _prices,
@@ -137,38 +126,44 @@ contract FundContractToken is FundContractBase, IFundContractToken {
         _accountForOperation(
             OPERATION_INITIALIZE << OPERATION_SHIFT_BITS,
             uint256(uint160(_producedBy)),
-            2 // type
+            0 // type 0
         );
-        
-        // __FundContractToken__init(_payToken);
-        if (_payToken == address(0)) {
-            revert AddressInvalid();
-        }
-        payToken = _payToken;
     }
     
-    function buy(uint256 amount) public {
-        
-        bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
-        if (!success) {
-            revert TransferError();
-        }
-        
-        _exchange(amount); 
+    /**
+     * exchange eth to token via ratios ETH/<token>
+     */
+    receive() external payable virtual validGasPrice nonReentrant() {
+       _exchange(msg.value);
 
-        _accountForOperation(
+       _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
             uint256(uint160(_msgSender())),
-            amount
+            msg.value
         );
     }
 
     /**
+     * exchange eth to token via ratios ETH/<token>
+     */
+    function buy() external payable validGasPrice nonReentrant() {
+        
+       _exchange(msg.value);
+
+       _accountForOperation(
+            OPERATION_BUY << OPERATION_SHIFT_BITS,
+            uint256(uint160(_msgSender())),
+            msg.value
+        );
+        
+    }
+    
+    /**
      * @param amount amount of eth
      * @param addr address to send
      */
-    function _claim(uint256 amount, address addr) internal override {
-        if (IERC20Upgradeable(payToken).balanceOf(address(this)) < amount) {
+    function _claim(uint256 amount, address addr) internal virtual override {
+        if (address(this).balance < amount) {
             revert InsufficientAmount();
         }
 
@@ -176,15 +171,15 @@ contract FundContractToken is FundContractBase, IFundContractToken {
             revert AddressInvalid();
         }
         
-        bool success = IERC20Upgradeable(payToken).transfer(addr, amount); 
+        address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
+        bool success = addr1.send(amount);
         if (!success) {
             revert TransferError();   
         }
-        
     }
     
     function getContractTotalAmount() internal view virtual override returns(uint256) {
-        return IERC20Upgradeable(payToken).balanceOf(address(this));
+        return address(this).balance;
     }
     
 }

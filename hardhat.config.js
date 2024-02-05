@@ -28,7 +28,7 @@ module.exports = {
       allowUnlimitedContractSize: false,
       gasPrice: "auto",
       gasLimit: 22000000,
-      //chainId: 0x89,
+      chainId: 0x38,  // sync with url or getting uniswap settings will reject transactions
       forking: {
         //url: mainnetURL
         //url: maticURL

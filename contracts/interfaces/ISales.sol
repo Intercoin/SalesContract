@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
-import "./IFundStructs.sol";
+import "./ISalesStructs.sol";
 import "@intercoin/whitelist/contracts/interfaces/IWhitelist.sol";
 
-interface IFundContractAggregator is IFundStructs {
-     /**
+interface ISales is ISalesStructs {
+    /**
      * @param _sellingToken address of ITR token
-     * @param _token0 USD Coin
-     * @param _token1 Wrapped token (WETH,WBNB,...)
      * @param _timestamps array of timestamps
      * @param _prices price exchange
      * @param _amountRaised raised amount
@@ -27,8 +25,6 @@ interface IFundContractAggregator is IFundStructs {
      */
      function init(
         address _sellingToken,
-        address _token0,
-        address _token1,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
         uint256[] memory _amountRaised,
@@ -40,6 +36,5 @@ interface IFundContractAggregator is IFundStructs {
         address _costManager,
         address _producedBy
     ) external;
+    
 }
-
-

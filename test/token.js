@@ -163,14 +163,14 @@ describe("ITR", function () {
     it("tokens should locked up if transfered contract from `Group` person" , async() => {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
 
-        var fundF = await ethers.getContractFactory("MockTransferContract");    
-        var fund = await fundF.connect(owner).deploy();
+        var salesF = await ethers.getContractFactory("MockTransferContract");    
+        var sales = await salesF.connect(owner).deploy();
 
-        await token.connect(owner).addLockup(fund.address, LockedUpInterval);
-        await token.connect(owner).transfer(fund.address, amountToTransfer);
+        await token.connect(owner).addLockup(sales.address, LockedUpInterval);
+        await token.connect(owner).transfer(sales.address, amountToTransfer);
 
-        // accountTwo buy some tokens from Fund contract
-        await fund.sendTokens(token.address, accountTwo.address, amountToTransfer);
+        // accountTwo buy some tokens from Sales contract
+        await sales.sendTokens(token.address, accountTwo.address, amountToTransfer);
 
         // now accountTwo can't send  until interval passed
         await expect(
@@ -181,20 +181,20 @@ describe("ITR", function () {
     it("tokens should unlocked after interval passed", async() => {
         var amountToTransfer = HUNDRED.mul(ONE_ETH);
 
-        var fundF = await ethers.getContractFactory("MockTransferContract");    
-        var fund = await fundF.connect(owner).deploy();
+        var salesF = await ethers.getContractFactory("MockTransferContract");    
+        var sales = await salesF.connect(owner).deploy();
 
-        await token.connect(owner).addLockup(fund.address, LockedUpInterval);
-        await token.connect(owner).transfer(fund.address, amountToTransfer);
+        await token.connect(owner).addLockup(sales.address, LockedUpInterval);
+        await token.connect(owner).transfer(sales.address, amountToTransfer);
 
         expect(
-            await token.balanceOf(fund.address)
+            await token.balanceOf(sales.address)
         ).to.be.eq(amountToTransfer);
 
-        // accountTwo buy some tokens from Fund contract
-        await fund.sendTokens(token.address, accountTwo.address, amountToTransfer)
+        // accountTwo buy some tokens from Sales contract
+        await sales.sendTokens(token.address, accountTwo.address, amountToTransfer)
 
-        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+        expect(await token.balanceOf(sales.address)).to.be.eq(ZERO);
         expect(await token.balanceOf(accountTwo.address)).to.be.eq(amountToTransfer);
 
         // now accountTwo can't send  until interval passed
@@ -207,7 +207,7 @@ describe("ITR", function () {
 
         await token.connect(accountTwo).transfer(accountThree.address, amountToTransfer);
 
-        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+        expect(await token.balanceOf(sales.address)).to.be.eq(ZERO);
         expect(await token.balanceOf(accountTwo.address)).to.be.eq(ZERO);
         expect(await token.balanceOf(accountThree.address)).to.be.eq(amountToTransfer);
     });
@@ -233,19 +233,19 @@ describe("ITR", function () {
     it("contract can burn own tokens", async() => {
         var amountToBurn = HUNDRED.mul(ONE_ETH);
 
-        var fundF = await ethers.getContractFactory("MockTransferContract");    
-        var fund = await fundF.connect(owner).deploy();
+        var salesF = await ethers.getContractFactory("MockTransferContract");    
+        var sales = await salesF.connect(owner).deploy();
 
-        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+        expect(await token.balanceOf(sales.address)).to.be.eq(ZERO);
 
-        await token.connect(owner).transfer(fund.address, amountToBurn);
+        await token.connect(owner).transfer(sales.address, amountToBurn);
 
-        expect(await token.balanceOf(fund.address)).to.be.eq(amountToBurn);
+        expect(await token.balanceOf(sales.address)).to.be.eq(amountToBurn);
         expect(await token.totalSupply()).to.be.eq(InitialSupply);
 
-        await fund.burnOwnTokens(token.address, amountToBurn);
+        await sales.burnOwnTokens(token.address, amountToBurn);
 
-        expect(await token.balanceOf(fund.address)).to.be.eq(ZERO);
+        expect(await token.balanceOf(sales.address)).to.be.eq(ZERO);
         expect(await token.totalSupply()).to.be.eq(InitialSupply.sub(amountToBurn));
     });
 

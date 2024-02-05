@@ -3,14 +3,14 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./interfaces/IFundContractAggregator.sol";
-import "./interfaces/IFundContractToken.sol";
-import "./interfaces/IFundContract.sol";
+import "./interfaces/ISalesAggregator.sol";
+import "./interfaces/ISalesToken.sol";
+import "./interfaces/ISales.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@intercoin/releasemanager/contracts/CostManagerFactoryHelper.sol";
 import "@intercoin/releasemanager/contracts/ReleaseManagerHelper.sol";
 
-import "./interfaces/IFundStructs.sol";
+import "./interfaces/ISalesStructs.sol";
 
 /**
 ****************
@@ -79,29 +79,29 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, ReleaseManagerHelper {
+contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, ReleaseManagerHelper {
     using Clones for address;
 
-    address public immutable fundContractImplementation;
-    address public immutable fundContractTokenImplementation;
-    address public immutable fundContractAggregatorImplementation;
+    address public immutable salesImplementation;
+    address public immutable salesTokenImplementation;
+    address public immutable salesAggregatorImplementation;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
   
     constructor(
-        address fundContractImpl,
-        address fundContractTokenImpl,
-        address fundContractAggregatorImpl,
+        address salesImpl,
+        address salesTokenImpl,
+        address salesAggregatorImpl,
         address costManager,
         address releaseManager
     ) 
         ReleaseManagerHelper(releaseManager)
         CostManagerFactoryHelper(costManager)
     {
-        fundContractImplementation = fundContractImpl;
-        fundContractTokenImplementation = fundContractTokenImpl;
-        fundContractAggregatorImplementation = fundContractAggregatorImpl;
+        salesImplementation = salesImpl;
+        salesTokenImplementation = salesTokenImpl;
+        salesAggregatorImplementation = salesAggregatorImpl;
 
     }
     ////////////////////////////////////////////////////////////////////////
@@ -146,16 +146,16 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
         returns(address) 
     {
-        address instance = address(fundContractImplementation).clone();
+        address instance = address(salesImplementation).clone();
         
-        IFundContract(instance).init(
+        ISales(instance).init(
             _sellingToken,
             _timestamps,
             _prices,
@@ -201,16 +201,16 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
         returns(address) 
     {
-        address instance = address(fundContractTokenImplementation).clone();
+        address instance = address(salesTokenImplementation).clone();
         
-        IFundContractToken(instance).init(
+        ISalesToken(instance).init(
             _payToken,
             _sellingToken,
             _timestamps,
@@ -260,16 +260,16 @@ contract FundFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rele
         uint64 _endTime,
         uint256[] memory _thresholds,
         uint256[] memory _bonuses,
-        IFundStructs.EnumWithdraw _ownerCanWithdraw,
+        ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData
     ) 
         public 
         nonReentrant
         returns(address) 
     {
-        address instance = address(fundContractAggregatorImplementation).clone();
+        address instance = address(salesAggregatorImplementation).clone();
         
-        IFundContractAggregator(instance).init(
+        ISalesAggregator(instance).init(
             _sellingToken,
             _token0,
             _token1,

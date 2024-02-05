@@ -41,7 +41,7 @@ const DontUseWhitelist = [
     false // use whitelist
 ];
 
-describe("Fund", function () {
+describe("Sales", function () {
     const accounts = waffle.provider.getWallets();
     
     // Setup accounts.
@@ -59,14 +59,14 @@ describe("Fund", function () {
     const trustedForwarder = accounts[12];
     
     // setup useful vars
-    var FundContractMockF;
-    var FundContractTokenF;
-    var FundContractAggregatorF;
+    var SalesMockF;
+    var SalesTokenF;
+    var SalesAggregatorF;
     var AggregatorF;
     var ERC20MintableF;
-    var FundFactoryF
+    var SalesFactoryF
     
-    var FundFactory;
+    var SalesFactory;
 
     var ReleaseManagerFactoryF;
     var ReleaseManagerF;
@@ -119,18 +119,18 @@ describe("Fund", function () {
         //prices = [100000000, 150000000, 180000000]; // 1 eth got 1 token and so on
         lastTime = parseInt(blockTime)+(8*timePeriod);
 
-        FundContractMockF = await ethers.getContractFactory("FundContractMock");    
-        FundContractTokenF = await ethers.getContractFactory("FundContractTokenMock");
-        FundContractAggregatorF = await ethers.getContractFactory("FundContractAggregator");
+        SalesMockF = await ethers.getContractFactory("SalesMock");    
+        SalesTokenF = await ethers.getContractFactory("SalesTokenMock");
+        SalesAggregatorF = await ethers.getContractFactory("SalesAggregator");
 
         ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
         
         AggregatorF = await ethers.getContractFactory("Aggregator");    
 
-        FundFactoryF = await ethers.getContractFactory("FundFactory");
+        SalesFactoryF = await ethers.getContractFactory("SalesFactory");
 
-        ReleaseManagerFactoryF= await ethers.getContractFactory("MockReleaseManagerFactory")
-        ReleaseManagerF = await ethers.getContractFactory("MockReleaseManager");
+        ReleaseManagerFactoryF= await ethers.getContractFactory("@intercoin/releasemanager/contracts/ReleaseManagerFactory.sol:ReleaseManagerFactory")
+        ReleaseManagerF = await ethers.getContractFactory("@intercoin/releasemanager/contracts/ReleaseManager.sol:ReleaseManager");
         let implementationReleaseManager    = await ReleaseManagerF.deploy();
         let releaseManagerFactory   = await ReleaseManagerFactoryF.connect(owner).deploy(implementationReleaseManager.address);
         let tx,rc,event,instance,instancesCount;
@@ -139,22 +139,22 @@ describe("Fund", function () {
         rc = await tx.wait(); // 0ms, as tx is already confirmed
         event = rc.events.find(event => event.event === 'InstanceProduced');
         [instance, instancesCount] = event.args;
-        let releaseManager = await ethers.getContractAt("MockReleaseManager",instance);
+        let releaseManager = await ethers.getContractAt("@intercoin/releasemanager/contracts/ReleaseManager.sol:ReleaseManager",instance);
 
-        let fundContractInstance = await FundContractMockF.deploy();
-        let fundContractTokenInstance = await FundContractTokenF.deploy();
-        let fundContractAggregatorInstance = await FundContractAggregatorF.deploy();
+        let salesInstance = await SalesMockF.deploy();
+        let salesTokenInstance = await SalesTokenF.deploy();
+        let salesAggregatorInstance = await SalesAggregatorF.deploy();
 
-        FundFactory = await FundFactoryF.connect(owner).deploy(
-            fundContractInstance.address,
-            fundContractTokenInstance.address,
-            fundContractAggregatorInstance.address,
+        SalesFactory = await SalesFactoryF.connect(owner).deploy(
+            salesInstance.address,
+            salesTokenInstance.address,
+            salesAggregatorInstance.address,
             NO_COSTMANAGER,
             releaseManager.address
         );
 
         // 
-        const factoriesList = [FundFactory.address];
+        const factoriesList = [SalesFactory.address];
         const factoryInfo = [
             [
                 1,//uint8 factoryIndex; 
@@ -176,12 +176,12 @@ describe("Fund", function () {
 
     
     describe("TrustedForwarder", function () {
-        var FundContractTokenInstance;
+        var SalesTokenInstance;
         beforeEach("deploying", async() => {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
             var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
             
-            let tx = await FundFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.address,
                 ERC20MintableInstance.address,
                 timestamps,
@@ -198,28 +198,28 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            FundContractTokenInstance = await ethers.getContractAt("FundContractToken",instance);   
+            SalesTokenInstance = await ethers.getContractAt("SalesToken",instance);   
         })
         it("should be empty after init", async() => {
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+            expect(await SalesTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
         });
 
         it("should be setup by owner", async() => {
-            await expect(FundContractTokenInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Ownable: caller is not the owner");
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
-            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
+            await expect(SalesTokenInstance.connect(accountOne).setTrustedForwarder(accountTwo.address)).to.be.revertedWith("Ownable: caller is not the owner");
+            expect(await SalesTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+            await SalesTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
+            expect(await SalesTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
         });
         
         it("should drop trusted forward if trusted forward become owner ", async() => {
-            await FundContractTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
-            await FundContractTokenInstance.connect(owner).transferOwnership(accountTwo.address);
-            expect(await FundContractTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
+            await SalesTokenInstance.connect(owner).setTrustedForwarder(accountTwo.address);
+            expect(await SalesTokenInstance.connect(accountOne).isTrustedForwarder(accountTwo.address)).to.be.true;
+            await SalesTokenInstance.connect(owner).transferOwnership(accountTwo.address);
+            expect(await SalesTokenInstance.connect(accountOne).isTrustedForwarder(ZERO_ADDRESS)).to.be.true;
         });
 
         it("shouldnt become owner and trusted forwarder", async() => {
-            await expect(FundContractTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith(`ForwarderCanNotBeOwner`);
+            await expect(SalesTokenInstance.connect(owner).setTrustedForwarder(owner.address)).to.be.revertedWith(`ForwarderCanNotBeOwner`);
         });
 
         it("shouldnt withdraw by owner if setup option `_ownerCanWithdraw` eq `never` ", async() => {
@@ -227,7 +227,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
             let txFee;
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -243,7 +243,7 @@ describe("Fund", function () {
             let event = rc.events.find(event => event.event === 'InstanceCreated');
             let [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+            var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
             let tmp = await ethers.provider.send("eth_blockNumber",[]);
             tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
@@ -251,11 +251,11 @@ describe("Fund", function () {
 
             // send ETH to Contract, but it should be revert with message "Amount exceeds allowed balance"
             const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address,amountSellingTokensSendToContract);
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.address,amountSellingTokensSendToContract);
 
             //
             await expect(
-                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+                SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
             ).to.be.revertedWith("WithdrawDisabled");
             
             // go to end time
@@ -263,7 +263,7 @@ describe("Fund", function () {
             await ethers.provider.send('evm_mine');
 
             await expect(
-                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+                SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
             ).to.be.revertedWith("WithdrawDisabled");
 
 
@@ -274,7 +274,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
             let txFee;
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -290,18 +290,18 @@ describe("Fund", function () {
             let event = rc.events.find(event => event.event === 'InstanceCreated');
             let [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+            var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
             let tmp = await ethers.provider.send("eth_blockNumber",[]);
             tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
             let currentBlockTime = parseInt(tmp.timestamp);
 
             const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, amountSellingTokensSendToContract);
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, amountSellingTokensSendToContract);
 
             //
             await expect(
-                FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
+                SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address)
             ).to.be.revertedWith("WithdrawDisabled");
             
             // go to end time
@@ -310,7 +310,7 @@ describe("Fund", function () {
 
             let sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
 
-            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            await SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
             let sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
 
             expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
@@ -323,7 +323,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
             let txFee;
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -339,14 +339,14 @@ describe("Fund", function () {
             let event = rc.events.find(event => event.event === 'InstanceCreated');
             let [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+            var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
             let tmp = await ethers.provider.send("eth_blockNumber",[]);
             tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
             let currentBlockTime = parseInt(tmp.timestamp);
 
             const amountSellingTokensSendToContract = MILLION.mul(ONE_ETH);
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, amountSellingTokensSendToContract);
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, amountSellingTokensSendToContract);
 
 
             let sellingTokensBalanceBefore,sellingTokensBalanceAfter,tmpSnapId;
@@ -354,7 +354,7 @@ describe("Fund", function () {
             // make snapshot before time manipulations
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
             sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
-            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            await SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
             sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
             expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
             // restore snapshot
@@ -367,7 +367,7 @@ describe("Fund", function () {
             // make snapshot before time manipulations
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
             sellingTokensBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
-            await FundContractInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
+            await SalesInstance.connect(owner).withdraw(amountSellingTokensSendToContract, accountFive.address);
             sellingTokensBalanceAfter = await ERC20MintableInstance.balanceOf(accountFive.address);
             expect(sellingTokensBalanceAfter.sub(sellingTokensBalanceBefore)).to.be.eq(amountSellingTokensSendToContract);
             // restore snapshot
@@ -386,7 +386,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
             var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
             
-            let tx = await FundFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.address,
                 ERC20MintableInstance.address,
                 timestamps,
@@ -403,33 +403,33 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
+            SalesTokenInstance = await ethers.getContractAt("SalesTokenMock",instance);   
 
             if (trustedForwardMode) {
-                await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
             // send ETH to Contract
             await expect(accountTwo.sendTransaction({
-                to: FundContractTokenInstance.address, 
+                to: SalesTokenInstance.address, 
                 value: ONE_ETH,
                 gasLimit: 150000
             })
             ).to.be.revertedWith(`NotSupported`);
 
             await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
-            var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
+            var ratio_TOKEN2_ITR = await SalesTokenInstance.connect(owner).getTokenPrice();
 
             // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
             
-            await ERC20MintableInstance.connect(owner).mint(FundContractTokenInstance.address, MILLION.mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(SalesTokenInstance.address, MILLION.mul(ONE_ETH));
 
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
             // set approve before
-            await Token2PayInstance.connect(accountTwo).approve(FundContractTokenInstance.address, amountTokenSendToContract);
+            await Token2PayInstance.connect(accountTwo).approve(SalesTokenInstance.address, amountTokenSendToContract);
             // send Token2 to Contract 
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
 
             var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
             var calculatedAmountOfTokens = amountTokenSendToContract.mul(ethDenom).div(ratio_TOKEN2_ITR);
@@ -459,7 +459,7 @@ describe("Fund", function () {
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
 
             var accountFourthBalanceBefore = await Token2PayInstance.balanceOf(accountFourth.address);
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
             var accountFourthBalanceAfter = await Token2PayInstance.balanceOf(accountFourth.address);
             expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
 
@@ -473,8 +473,8 @@ describe("Fund", function () {
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
 
             var accountOwnerBalanceBefore = await Token2PayInstance.balanceOf(owner.address);
-            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll', []);
+            let amountETHHoldOnContract = await SalesTokenInstance.getHoldedAmount();
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claimAll', []);
             var accountOwnerBalanceAfter = await Token2PayInstance.balanceOf(owner.address);
             expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore)).to.be.eq(amountETHHoldOnContract);
 
@@ -483,7 +483,7 @@ describe("Fund", function () {
             //---------------------------------end
 
             var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
             var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);
             var accountFiveBalanceExpected = accountFiveBalanceBefore.add(calculatedAmountOfTokens);
 
@@ -496,7 +496,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
             let txFee;
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -512,32 +512,32 @@ describe("Fund", function () {
             let event = rc.events.find(event => event.event === 'InstanceCreated');
             let [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+            var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
             if (trustedForwardMode) {
-                await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
             let tmp = await ethers.provider.send("eth_blockNumber",[]);
             tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
             let currentBlockTime = parseInt(tmp.timestamp);
 
-            var ratio_ETH_ITR = await FundContractInstance.getTokenPrice();
+            var ratio_ETH_ITR = await SalesInstance.getTokenPrice();
         
             // send ETH to Contract, but it should be revert with message "Amount exceeds allowed balance"
             await expect(
                 accountTwo.sendTransaction({
-                    to: FundContractInstance.address, 
+                    to: SalesInstance.address, 
                     value: amountETHSendToContract
                 })
             ).to.be.revertedWith("InsufficientAmount");
             
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
 
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
             // send ETH to Contract
             await accountTwo.sendTransaction({
-                to: FundContractInstance.address, 
+                to: SalesInstance.address, 
                 value: amountETHSendToContract,
                 gasLimit: 180000
             });
@@ -570,7 +570,7 @@ describe("Fund", function () {
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
 
             var accountFourthBalanceBefore = (await ethers.provider.getBalance(accountFourth.address));
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
             var accountFourthBalanceAfter = (await ethers.provider.getBalance(accountFourth.address));
             expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
             
@@ -581,8 +581,8 @@ describe("Fund", function () {
             // Make claimAll
 
             var accountOwnerBalanceBefore = (await ethers.provider.getBalance(owner.address));
-            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
-            tx = await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll', []);
+            let amountETHHoldOnContract = await SalesTokenInstance.getHoldedAmount();
+            tx = await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claimAll', []);
             rc = await tx.wait(); 
             txFee = rc.cumulativeGasUsed.mul(rc.effectiveGasPrice);
             if (trustedForwardMode) {
@@ -596,7 +596,7 @@ describe("Fund", function () {
 
 
             var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
             var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);
             var accountFiveBalanceExpected = accountFiveBalanceBefore.add(calculatedAmountOfTokens);
 
@@ -622,7 +622,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
             var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
             
-            let tx = await FundFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.address,
                 ERC20MintableInstance.address,
                 timestamps,
@@ -639,33 +639,33 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
+            SalesTokenInstance = await ethers.getContractAt("SalesTokenMock",instance);   
 
             if (trustedForwardMode) {
-                await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
             // send ETH to Contract
             await expect(accountTwo.sendTransaction({
-                to: FundContractTokenInstance.address, 
+                to: SalesTokenInstance.address, 
                 value: ONE_ETH,
                 gasLimit: 150000
             })
             ).to.be.revertedWith(`NotSupported`);
 
             await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
-            var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
+            var ratio_TOKEN2_ITR = await SalesTokenInstance.connect(owner).getTokenPrice();
 
             // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
             
-            await ERC20MintableInstance.connect(owner).mint(FundContractTokenInstance.address, MILLION.mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(SalesTokenInstance.address, MILLION.mul(ONE_ETH));
 
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
             // set approve before
-            await Token2PayInstance.connect(accountTwo).approve(FundContractTokenInstance.address, amountTokenSendToContract);
+            await Token2PayInstance.connect(accountTwo).approve(SalesTokenInstance.address, amountTokenSendToContract);
             // send Token2 to Contract 
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
 
             var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
             var calculatedAmountOfTokens = amountTokenSendToContract.mul(ethDenom).div(ratio_TOKEN2_ITR);
@@ -692,7 +692,7 @@ describe("Fund", function () {
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
 
             var accountFourthBalanceBefore = await Token2PayInstance.balanceOf(accountFourth.address);
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claim(uint256,address)', [amountETHSendToContract, accountFourth.address]);
             var accountFourthBalanceAfter = await Token2PayInstance.balanceOf(accountFourth.address);
             expect(accountFourthBalanceAfter.sub(accountFourthBalanceBefore)).to.be.eq(amountETHSendToContract);
 
@@ -706,8 +706,8 @@ describe("Fund", function () {
             tmpSnapId = await ethers.provider.send('evm_snapshot', []);  
 
             var accountOwnerBalanceBefore = await Token2PayInstance.balanceOf(owner.address);
-            let amountETHHoldOnContract = await FundContractTokenInstance.getHoldedAmount();
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'claimAll', []);
+            let amountETHHoldOnContract = await SalesTokenInstance.getHoldedAmount();
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'claimAll', []);
             var accountOwnerBalanceAfter = await Token2PayInstance.balanceOf(owner.address);
             expect(accountOwnerBalanceAfter.sub(accountOwnerBalanceBefore)).to.be.eq(amountETHHoldOnContract);
 
@@ -716,7 +716,7 @@ describe("Fund", function () {
             //---------------------------------end
 
             var accountFiveBalanceBefore = await ERC20MintableInstance.balanceOf(accountFive.address);
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
+            await mixedCall(SalesTokenInstance, trustedForwardMode, owner, 'withdraw(uint256,address)', [calculatedAmountOfTokens, accountFive.address]);
             var accountFiveBalanceActual = await ERC20MintableInstance.balanceOf(accountFive.address);
             var accountFiveBalanceExpected = accountFiveBalanceBefore.add(calculatedAmountOfTokens);
 
@@ -737,7 +737,7 @@ describe("Fund", function () {
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
             var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
             
-            let tx = await FundFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.address,
                 ERC20MintableInstance.address,
                 timestamps,
@@ -754,33 +754,33 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            FundContractTokenInstance = await ethers.getContractAt("FundContractTokenMock",instance);   
+            SalesTokenInstance = await ethers.getContractAt("SalesTokenMock",instance);   
 
             if (trustedForwardMode) {
-                await FundContractTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
             // send ETH to Contract
             await expect(accountTwo.sendTransaction({
-                to: FundContractTokenInstance.address, 
+                to: SalesTokenInstance.address, 
                 value: ONE_ETH,
                 gasLimit: 150000
             })
             ).to.be.revertedWith(`NotSupported`);
 
             await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
-            var ratio_TOKEN2_ITR = await FundContractTokenInstance.connect(owner).getTokenPrice();
+            var ratio_TOKEN2_ITR = await SalesTokenInstance.connect(owner).getTokenPrice();
 
             // send t2 to Contract, but it should be revert with message "Amount exceeds allowed balance"
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "ERC20: insufficient allowance");
             
-            await ERC20MintableInstance.connect(owner).mint(FundContractTokenInstance.address, MILLION.mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(SalesTokenInstance.address, MILLION.mul(ONE_ETH));
 
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
             // set approve before
-            await Token2PayInstance.connect(accountTwo).approve(FundContractTokenInstance.address, amountTokenSendToContract);
+            await Token2PayInstance.connect(accountTwo).approve(SalesTokenInstance.address, amountTokenSendToContract);
             // send Token2 to Contract 
-            await mixedCall(FundContractTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "WhitelistError");
+            await mixedCall(SalesTokenInstance, trustedForwardMode, accountTwo, 'buy(uint256)', [amountTokenSendToContract], "WhitelistError");
 
         });
     
@@ -792,7 +792,7 @@ describe("Fund", function () {
             //     amountRaised = [0, 100, 500]
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -808,17 +808,17 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContractMock",instance);   
+            var SalesInstance = await ethers.getContractAt("SalesMock",instance);   
 
             if (trustedForwardMode) {
-                await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
             var tokenPrice;
 
             var setAmountTotalRaisedValues = [0,150,600];
             for (let i in setAmountTotalRaisedValues) {
-                await FundContractInstance.connect(owner).setTotalAmountRaised(setAmountTotalRaisedValues[i]);
-                tokenPrice = await FundContractInstance.getTokenPrice();
+                await SalesInstance.connect(owner).setTotalAmountRaised(setAmountTotalRaisedValues[i]);
+                tokenPrice = await SalesInstance.getTokenPrice();
                 expect(tokenPrice).to.be.eq(prices[i]);
             }
 
@@ -837,7 +837,7 @@ describe("Fund", function () {
     
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
-            let tx = await FundFactory.connect(owner).produce(
+            let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.address,
                 timestamps,
                 prices,
@@ -853,36 +853,36 @@ describe("Fund", function () {
             const event = rc.events.find(event => event.event === 'InstanceCreated');
             const [instance,] = event.args;
 
-            var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+            var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
             if (trustedForwardMode) {
-                await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
-            var ratio_ETH_ITR = await FundContractInstance.getTokenPrice();
+            var ratio_ETH_ITR = await SalesInstance.getTokenPrice();
             
             // equivalent thresholds[0]
             var ethAmount1 = BigNumber.from(thresholds[0].toString());
             // equivalent thresholds[1]
             var ethAmount2 = BigNumber.from(thresholds[1].toString());
 
-            await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(ONE_ETH));
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, MILLION.mul(ONE_ETH));
             
-            await mixedCall(FundContractInstance, trustedForwardMode, owner, 'setGroup(address[],string)', [[accountOne.address,accountTwo.address],'TestGroupName']);
+            await mixedCall(SalesInstance, trustedForwardMode, owner, 'setGroup(address[],string)', [[accountOne.address,accountTwo.address],'TestGroupName']);
         
             var accountOneBalanceBefore = await ERC20MintableInstance.balanceOf(accountOne.address);
             var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
 
             await accountOne.sendTransaction({
-                to: FundContractInstance.address, 
+                to: SalesInstance.address, 
                 value: ethAmount1,
-                gasLimit: 2000000
+               // gasLimit: 2000000
             });
-    
+
             var accountOneBalanceMiddle = await ERC20MintableInstance.balanceOf(accountOne.address);
 
             await accountTwo.sendTransaction({
-                to: FundContractInstance.address, 
+                to: SalesInstance.address, 
                 value: ethAmount2,
                 gasLimit: 2000000
             });
@@ -897,7 +897,7 @@ describe("Fund", function () {
         });
 
         describe("test commissions", function () {
-            var ERC20MintableInstance, FundContractInstance;
+            var ERC20MintableInstance, SalesInstance;
             var accountEightBalanceBefore, accountNineBalanceBefore, accountElevenBalanceBefore;
             var accountOneBalanceBefore, accountTwoBalanceBefore, accountThreeBalanceBefore;
 
@@ -920,7 +920,7 @@ describe("Fund", function () {
                 tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
                 currentBlockTime = parseInt(tmp.timestamp);
 
-                let tx = await FundFactory.connect(owner).produce(
+                let tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices, //prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
@@ -944,18 +944,18 @@ describe("Fund", function () {
                 const event = rc.events.find(event => event.event === 'InstanceCreated');
                 const [instance,] = event.args;
 
-                FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                SalesInstance = await ethers.getContractAt("Sales",instance);   
 
                 if (trustedForwardMode) {
-                    await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                    await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
                 }
 
                 // add commissions
-                await FundContractInstance.connect(owner).addCommission(1000, accountEight.address);
-                await FundContractInstance.connect(owner).addCommission(2000, accountNine.address);
-                await FundContractInstance.connect(owner).addCommission(1000, accountEleven.address);
+                await SalesInstance.connect(owner).addCommission(1000, accountEight.address);
+                await SalesInstance.connect(owner).addCommission(2000, accountNine.address);
+                await SalesInstance.connect(owner).addCommission(1000, accountEleven.address);
 
-                await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(ONE_ETH));
+                await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, MILLION.mul(ONE_ETH));
                 
                 accountOneBalanceBefore = await ERC20MintableInstance.balanceOf(accountOne.address);
                 accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
@@ -969,24 +969,24 @@ describe("Fund", function () {
                 // buy tokens for 3 ETH
                 
                 await accountOne.sendTransaction({
-                    to: FundContractInstance.address, 
+                    to: SalesInstance.address, 
                     value: TotalETHToSend.div(3),
                     gasLimit: 2000000
                 });
                 await accountTwo.sendTransaction({
-                    to: FundContractInstance.address, 
+                    to: SalesInstance.address, 
                     value: TotalETHToSend.div(3),
                     gasLimit: 2000000
                 });
                 await accountThree.sendTransaction({
-                    to: FundContractInstance.address, 
+                    to: SalesInstance.address, 
                     value: TotalETHToSend.div(3),
                     gasLimit: 2000000
                 });
             });
 
             it('claimAll', async () => {
-                var ratio_ETH_TOKENS = await FundContractInstance.getTokenPrice();
+                var ratio_ETH_TOKENS = await SalesInstance.getTokenPrice();
                 var expectedTokens = (TotalETHToSend.div(3)).mul(ethDenom).div(ratio_ETH_TOKENS);
                 var accountOneBalanceAfter = await ERC20MintableInstance.balanceOf(accountOne.address);
                 var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
@@ -998,7 +998,7 @@ describe("Fund", function () {
                 expect(accountThreeBalanceAfter.sub(accountThreeBalanceBefore)).to.be.eq(expectedTokens);
 
 
-                const tx1 = await mixedCall(FundContractInstance, trustedForwardMode, owner, 'claimAll', []);
+                const tx1 = await mixedCall(SalesInstance, trustedForwardMode, owner, 'claimAll', []);
                 const rc1 = await tx1.wait(); 
                 var txFee= rc1.cumulativeGasUsed.mul(rc1.effectiveGasPrice);
 
@@ -1014,17 +1014,17 @@ describe("Fund", function () {
             });
         
             it('commissions', async () => {
-                await mixedCall(FundContractInstance, trustedForwardMode, owner, 'claimAll', []);
+                await mixedCall(SalesInstance, trustedForwardMode, owner, 'claimAll', []);
 
                 await expect(
-                    FundContractInstance.connect(accountFourth).sendCommissions()
+                    SalesInstance.connect(accountFourth).sendCommissions()
                 ).to.be.revertedWith('ExchangeTimeShouldBePassed');
 
                 //time
                 // go to end time
                 await time.increase(parseInt(lastTime-currentBlockTime));
 
-                await FundContractInstance.connect(accountFourth).sendCommissions();
+                await SalesInstance.connect(accountFourth).sendCommissions();
 
                 var accountEightBalanceAfter = (await ethers.provider.getBalance(accountEight.address));
                 var accountNineBalanceAfter = (await ethers.provider.getBalance(accountNine.address));
@@ -1040,18 +1040,18 @@ describe("Fund", function () {
                 var accountEightBalanceAfter, accountNineBalanceAfter, accountElevenBalanceAfter;
                 beforeEach("prepare", async() => {
                 
-                    await mixedCall(FundContractInstance, trustedForwardMode, owner, 'claimAll', []);
+                    await mixedCall(SalesInstance, trustedForwardMode, owner, 'claimAll', []);
 
                     // go to end time
                     await time.increase(parseInt(lastTime-currentBlockTime));
 
-                    await FundContractInstance.connect(accountFourth).sendCommissions();
+                    await SalesInstance.connect(accountFourth).sendCommissions();
 
                     accountEightBalanceAfter = (await ethers.provider.getBalance(accountEight.address));
                     accountNineBalanceAfter = (await ethers.provider.getBalance(accountNine.address));
                     accountElevenBalanceAfter = (await ethers.provider.getBalance(accountEleven.address));
 
-                    await FundContractInstance.connect(owner).continueSale(
+                    await SalesInstance.connect(owner).continueSale(
                         [lastTime+5*timePeriod],
                         [prices[0]],
                         [MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH)],
@@ -1061,20 +1061,20 @@ describe("Fund", function () {
                   
                 });
                 it('still can buy tokens', async () => {
-                    await accountOne.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
-                    await accountTwo.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
-                    await accountThree.sendTransaction({to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountOne.sendTransaction({  to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountTwo.sendTransaction({  to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountThree.sendTransaction({to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
                 });
 
                 it('buy the same as before and get commissions', async () => {
-                    await accountOne.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
-                    await accountTwo.sendTransaction({  to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
-                    await accountThree.sendTransaction({to: FundContractInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountOne.sendTransaction({  to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountTwo.sendTransaction({  to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
+                    await accountThree.sendTransaction({to: SalesInstance.address, value: TotalETHToSend.div(3),gasLimit: 2000000});
 
                     // go to end time
                     await time.increase(parseInt(lastTime+20*timePeriod-currentBlockTime));
 
-                    await FundContractInstance.connect(accountFourth).sendCommissions();
+                    await SalesInstance.connect(accountFourth).sendCommissions();
 
                     var accountEightBalanceAfter2 = (await ethers.provider.getBalance(accountEight.address));
                     var accountNineBalanceAfter2 = (await ethers.provider.getBalance(accountNine.address));
@@ -1101,7 +1101,7 @@ describe("Fund", function () {
 
             it('available only for owner', async () => {
                 var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-                tx = await FundFactory.connect(owner).produce(
+                tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices,
@@ -1117,16 +1117,16 @@ describe("Fund", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance,] = event.args;
 
-                var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                var SalesInstance = await ethers.getContractAt("Sales",instance);   
                 
                 await expect(
-                    FundContractInstance.connect(accountTwo).continueSale(timestamps,prices,amountRaisedEx,lastTime)
+                    SalesInstance.connect(accountTwo).continueSale(timestamps,prices,amountRaisedEx,lastTime)
                 ).to.be.revertedWith('Ownable: caller is not the owner');
             });
 
             it('available only with option EnumWithdrawOption.never', async () => {
                 var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-                tx = await FundFactory.connect(owner).produce(
+                tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices,
@@ -1142,16 +1142,16 @@ describe("Fund", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance,] = event.args;
 
-                var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                var SalesInstance = await ethers.getContractAt("Sales",instance);   
                 
                 await expect(
-                    FundContractInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime)
+                    SalesInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime)
                 ).to.be.revertedWith('NotSupported');
             });
 
             it('"lastTime" should be more that previous "lastTime"', async () => {
                 var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-                tx = await FundFactory.connect(owner).produce(
+                tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices,
@@ -1167,10 +1167,10 @@ describe("Fund", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance,] = event.args;
 
-                var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                var SalesInstance = await ethers.getContractAt("Sales",instance);   
                 
                 await expect(
-                    FundContractInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime)
+                    SalesInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime)
                 ).to.be.revertedWith('ExchangeTimeShouldBePassed');
             });
 
@@ -1178,7 +1178,7 @@ describe("Fund", function () {
 
                 var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
                 timestamps[1] = 0;
-                tx = await FundFactory.connect(owner).produce(
+                tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices,
@@ -1194,17 +1194,17 @@ describe("Fund", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance,] = event.args;
 
-                var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                var SalesInstance = await ethers.getContractAt("Sales",instance);   
                 
                 await expect(
-                    FundContractInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime+20*24*60*60)
+                    SalesInstance.connect(owner).continueSale(timestamps,prices,amountRaisedEx,lastTime+20*24*60*60)
                 ).to.be.revertedWith('InvalidInput');
             });
 
             it('shouldnt burn unsold token if ERC20 does not support "burn" method', async () => {
                 var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
                 
-                tx = await FundFactory.connect(owner).produce(
+                tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.address,
                     timestamps,
                     prices,
@@ -1220,12 +1220,12 @@ describe("Fund", function () {
                 event = rc.events.find(event => event.event === 'InstanceCreated');
                 [instance,] = event.args;
 
-                var FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                var SalesInstance = await ethers.getContractAt("Sales",instance);   
 
-                await ERC20MintableInstance.connect(owner).mint(FundContractInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
+                await ERC20MintableInstance.connect(owner).mint(SalesInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
     
                 await accountTwo.sendTransaction({
-                    to: FundContractInstance.address, 
+                    to: SalesInstance.address, 
                     value: amountETHSendToContract,
                     gasLimit: 180000
                 });
@@ -1239,19 +1239,19 @@ describe("Fund", function () {
                 await ethers.provider.send('evm_mine');
 
                 await expect(
-                    FundContractInstance.connect(accountOne).burnAllUnsoldTokens()
+                    SalesInstance.connect(accountOne).burnAllUnsoldTokens()
                 ).to.be.revertedWith('TransferError');
             });
 
             describe("test continueSale", function () {
-                var ERC20MintableBurnable, FundContractInstance;
+                var ERC20MintableBurnable, SalesInstance;
                 var currentBlockTimeBeforeSend;
                 beforeEach("before", async() => {
                     var ERC20MintableBurnableF = await ethers.getContractFactory("ERC20MintableBurnable");    
                     ERC20MintableBurnable = await ERC20MintableBurnableF.connect(owner).deploy('t1','t1');
 
                     let txFee;
-                    let tx = await FundFactory.connect(owner).produce(
+                    let tx = await SalesFactory.connect(owner).produce(
                         ERC20MintableBurnable.address,
                         timestamps,
                         prices,
@@ -1267,24 +1267,24 @@ describe("Fund", function () {
                     let event = rc.events.find(event => event.event === 'InstanceCreated');
                     let [instance,] = event.args;
 
-                    FundContractInstance = await ethers.getContractAt("FundContract",instance);   
+                    SalesInstance = await ethers.getContractAt("Sales",instance);   
 
                     if (trustedForwardMode) {
-                        await FundContractInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                        await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
                     }
 
                     let tmp = await ethers.provider.send("eth_blockNumber",[]);
                     tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
                     currentBlockTimeBeforeSend = parseInt(tmp.timestamp);
 
-                    //var ratio_ETH_ITR = await FundContractInstance.getTokenPrice();
+                    //var ratio_ETH_ITR = await SalesInstance.getTokenPrice();
 
-                    await ERC20MintableBurnable.connect(owner).mint(FundContractInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
+                    await ERC20MintableBurnable.connect(owner).mint(SalesInstance.address, MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH));
 
                     //var accountTwoBalanceBefore = await ERC20MintableBurnable.balanceOf(accountTwo.address);
                     // send ETH to Contract
                     await accountTwo.sendTransaction({
-                        to: FundContractInstance.address, 
+                        to: SalesInstance.address, 
                         value: amountETHSendToContract,
                         gasLimit: 180000
                     });
@@ -1297,7 +1297,7 @@ describe("Fund", function () {
                     await ethers.provider.send('evm_increaseTime', [parseInt(lastTime-currentBlockTimeBeforeSend)]);
                     await ethers.provider.send('evm_mine');
 
-                    await FundContractInstance.connect(owner).continueSale(
+                    await SalesInstance.connect(owner).continueSale(
                         [lastTime+5*timePeriod],
                         [prices[prices.length-1]],
                         [MILLION.mul(MILLION).mul(MILLION).mul(ONE_ETH)],
@@ -1306,18 +1306,18 @@ describe("Fund", function () {
                 });
 
                 it('any preson can call burnAllUnsoldTokens', async () => {
-                    var balanceBefore = await ERC20MintableBurnable.balanceOf(FundContractInstance.address);
+                    var balanceBefore = await ERC20MintableBurnable.balanceOf(SalesInstance.address);
 
                     await expect(
-                        FundContractInstance.connect(accountOne).burnAllUnsoldTokens()
+                        SalesInstance.connect(accountOne).burnAllUnsoldTokens()
                     ).to.be.revertedWith("ExchangeTimeShouldBePassed");
 
                     // go to end time
                     await ethers.provider.send('evm_increaseTime', [parseInt(lastTime+20*timePeriod-currentBlockTimeBeforeSend)]);
                     await ethers.provider.send('evm_mine');
 
-                    await FundContractInstance.connect(accountOne).burnAllUnsoldTokens();
-                    var balanceAfter = await ERC20MintableBurnable.balanceOf(FundContractInstance.address);
+                    await SalesInstance.connect(accountOne).burnAllUnsoldTokens();
+                    var balanceAfter = await ERC20MintableBurnable.balanceOf(SalesInstance.address);
 
                     expect(balanceBefore).not.to.be.eq(ZERO);
                     expect(balanceAfter).to.be.eq(ZERO);
@@ -1327,7 +1327,7 @@ describe("Fund", function () {
                     var balanceBefore = await ERC20MintableBurnable.balanceOf(accountThree.address);
                     // send ETH to Contract
                     await accountThree.sendTransaction({
-                        to: FundContractInstance.address, 
+                        to: SalesInstance.address, 
                         value: amountETHSendToContract,
                         gasLimit: 180000
                     });
@@ -1377,7 +1377,7 @@ describe("Fund", function () {
             wrappedNativeTokenAsWETH = await ethers.getContractAt("@uniswap/v2-periphery/contracts/interfaces/IWETH.sol:IWETH", weth);
             wrappedNativeTokenAsERC20 = await ethers.getContractAt("ERC20Mintable", weth);
             
-            await uniswapRouterFactoryInstance.createPair(token0.address, weth);
+            //await uniswapRouterFactoryInstance.createPair(token0.address, weth);
             await uniswapRouterFactoryInstance.createPair(token1.address, weth);
             await uniswapRouterFactoryInstance.createPair(token0.address, token1.address);
 
@@ -1393,6 +1393,7 @@ describe("Fund", function () {
             //token0/wrappedNativeToken
             await token0.mint(accountFive.address, amountToAddLiquidity);
             await token0.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
+            
             //await wrappedNativeToken.mint(accountFive.address, amountToAddLiquidity);
             await wrappedNativeTokenAsERC20.connect(accountFive).approve(uniswapRouterInstance.address, amountToAddLiquidity);
             await uniswapRouterInstance.connect(accountFive).addLiquidity(token0.address, weth, amountToAddLiquidity, amountToAddLiquidity, 0, 0, accountFive.address, timeUntil);

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IFundStructs.sol";
+import "./ISalesStructs.sol";
 import "@intercoin/whitelist/contracts/interfaces/IWhitelist.sol";
 
-interface IFundContractToken is IFundStructs {
+interface ISalesToken is ISalesStructs {
     /**
      * @param _payToken address of token's pay
      * @param _sellingToken address of ITR token

@@ -9,14 +9,14 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@intercoin/releasemanager/contracts/CostManagerHelperERC2771Support.sol";
 import "@intercoin/whitelist/contracts/Whitelist.sol";
 import "./interfaces/IPresale.sol";
-import "./interfaces/IFundStructs.sol";
+import "./interfaces/ISalesStructs.sol";
 import "./interfaces/IERC20Burnable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820RegistryUpgradeable.sol";
 
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
 
-abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, IFundStructs, IERC777RecipientUpgradeable, IERC777SenderUpgradeable {
+abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, ISalesStructs, IERC777RecipientUpgradeable, IERC777SenderUpgradeable {
 
     address public sellingToken;
     uint64[] public timestamps;
@@ -128,7 +128,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         _;
     }
     
-    function __FundContractBase__init(
+    function __SalesBase__init(
         address _sellingToken,
         uint64[] memory _timestamps,
         uint256[] memory _prices,
@@ -233,7 +233,6 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
     }
     
     function _exchange(uint256 inputAmount) internal virtual returns(uint256) {
-
         address sender = _msgSender();
 
         if (!whitelisted(sender)) { 
@@ -243,9 +242,9 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
         if (_endTime <= block.timestamp) {
             revert ExchangeTimeIsOver();
         }
-        
+    
         uint256 tokenPrice = getTokenPrice();
-        
+
         uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
         if (amount2send == 0) {
             revert CantCalculateAmountOfTokens();
@@ -259,14 +258,13 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             revert InsufficientAmount();
         }
 
-        // bool success = ERC777Upgradeable(sellingToken).transfer(sender, amount2send);
-        // if (!success) {
-        //     revert TransferError();
-        // }
-        ERC777Upgradeable(sellingToken).send(sender, amount2send, "");
-        
+        bool success = ERC777Upgradeable(sellingToken).transfer(sender, amount2send);
+        if (!success) {
+            revert TransferError();
+        }
         
         emit Exchange(sender, inputAmount, amount2send);
+
         // bonus calculation
         _addBonus(
             sender, 
@@ -274,7 +272,7 @@ abstract contract FundContractBase is OwnableUpgradeable, CostManagerHelperERC27
             tokenPrice,
             true
         );
-        
+
         return amount2send;
     }
     
