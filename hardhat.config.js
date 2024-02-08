@@ -1,11 +1,11 @@
-require('dotenv').config()
 
+require('dotenv').config();
+/*
 require("@nomiclabs/hardhat-ethers")
-require('hardhat-docgen')
-require('hardhat-deploy')
+
 require("@nomiclabs/hardhat-waffle")
 require("@nomiclabs/hardhat-web3")
-require("@nomiclabs/hardhat-etherscan")
+require("@nomicfoundation/hardhat-verify");
 require("solidity-coverage")
 require("hardhat-gas-reporter")
 //require("hardhat-docgen")
@@ -13,6 +13,10 @@ require("@hardhat-docgen/core")
 //require("@hardhat-docgen/markdown")
 //require("./docgen-custom-markdown")
 
+*/
+require("@nomicfoundation/hardhat-toolbox");
+
+//----------------------------------------------------------------
 
 const kovanURL = `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN}`
 const goerliURL = `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_GOERLI}`
@@ -23,7 +27,12 @@ const maticURL = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY
 const mumbaiURL = "https://polygon-mumbai-bor.publicnode.com";//'https://matic-mumbai.chainstacklabs.com';
 
 module.exports = {
+  defaultNetwork: "hardhat",
   networks: {
+    // sepolia: {
+    //   url: "https://sepolia.infura.io/v3/<key>",
+    //   accounts: [privateKey1, privateKey2, ...]
+    // }
     hardhat: {
       allowUnlimitedContractSize: false,
       gasPrice: "auto",
