@@ -86,12 +86,14 @@ contract SalesToken is SalesBase, ISalesToken {
     /**
      * @param _payToken address of ITR token
      * @param _sellingToken address of ITR token
-     * @param _timestamps array of timestamps
-     * @param _prices price exchange
-     * @param _amountRaised raised amount
+     * @param _priceSettings PriceSettings struct's array
+     *  uint64 timestamp timestamp
+     *  uint256 price price exchange
+     *  uint256 amountRaised raised amount
      * @param _endTime after this time exchange stop
-     * @param _thresholds thresholds
-     * @param _bonuses bonuses
+     * @param _bonusSettings ThresholdBonuses struct's array
+     *  uint256 threshold thresholds
+     *  uint256 bonus bonuses
      * @param _ownerCanWithdraw enum option where:
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
@@ -101,19 +103,20 @@ contract SalesToken is SalesBase, ISalesToken {
 	 *	bytes4 method;
 	 *	uint8 role;
      *  bool useWhitelist;
+     * @param _lockedInPrice lockedInPrice struct
+     *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
+     *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
      * @param _costManager costmanager address
      */
      function init(
         address _payToken,
         address _sellingToken,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        PriceSettings[] memory _priceSettings,
         uint64 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ThresholdBonuses[] memory _bonusSettings,
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
+        LockedInPrice memory _lockedInPrice,
         address _costManager,
         address _producedBy
     ) 
@@ -123,14 +126,12 @@ contract SalesToken is SalesBase, ISalesToken {
     {
         __SalesBase__init(
             _sellingToken, 
-            _timestamps,
-            _prices,
-            _amountRaised,
+            _priceSettings,
             _endTime,
-            _thresholds,
-            _bonuses,
+            _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
+            _lockedInPrice,
             _costManager
         );
 

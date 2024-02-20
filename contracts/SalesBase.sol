@@ -75,6 +75,15 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         address[] participants;
         bool exists;
     }
+
+    uint256 minimumLockedInAmount;
+    uint256 maximumLockedInAmount;
+    struct LockedPrice {
+        uint256 price;
+        uint256 boughtAmount;
+        bool exists;
+    }
+    mapping(address => LockedPrice) lockedPrice;
     
     mapping(string => Group) groups;
     mapping(address => Participant) participants;
@@ -127,17 +136,20 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         _;
     }
-    
+
     function __SalesBase__init(
         address _sellingToken,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        PriceSettings[] memory _priceSettings,
+        // uint64[] memory _timestamps,
+        // uint256[] memory _prices,
+        // uint256[] memory _amountRaised,
         uint64 _endTs,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ThresholdBonuses[] memory _bonusSettings,
+        // uint256[] memory _thresholds,
+        // uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
+        LockedInPrice memory _lockedInPrice,
         address _costManager
     ) 
         internal 
@@ -155,15 +167,29 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
         sellingToken = _sellingToken;
-        timestamps = _timestamps;
-        prices = _prices;
-        amountRaised = _amountRaised;
+        for (uint256 i = 0; i<_priceSettings.length; i++) {
+            timestamps[i] = _priceSettings[i].timestamp;
+            prices[i] = _priceSettings[i].price;
+            amountRaised[i] = _priceSettings[i].amountRaised;
+        }
+        // timestamps = _timestamps;
+        // prices = _prices;
+        // amountRaised = _amountRaised;
         _endTime = _endTs;
-        thresholds = _thresholds;
-        bonuses = _bonuses;
+
+        for (uint256 i = 0; i < _bonusSettings.length; i++) {
+            thresholds[i] = _bonusSettings[i].threshold;
+            bonuses[i] = _bonusSettings[i].bonus;
+        }
+        // thresholds = _thresholds;
+        // bonuses = _bonuses;
+        
         withdrawOption = _ownerCanWithdraw;
 
         whitelistInit(_whitelistData);
+
+        minimumLockedInAmount = _lockedInPrice.minimumLockedInAmount;
+        maximumLockedInAmount = _lockedInPrice.maximumLockedInAmount;
 
         // register interfaces
         _ERC1820_REGISTRY.setInterfaceImplementer(address(this), _TOKENS_SENDER_INTERFACE_HASH, address(this));

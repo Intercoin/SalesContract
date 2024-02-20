@@ -7,4 +7,20 @@ interface ISalesStructs {
         afterEndTime,
         anytime
     }
+    
+    struct PriceSettings {
+        uint64 timestamp;
+        uint256 price;
+        uint256 amountRaised;
+    }
+
+    struct ThresholdBonuses {
+        uint256 threshold;
+        uint256 bonus;
+    }
+
+    struct LockedInPrice {
+        uint256 minimumLockedInAmount;
+        uint256 maximumLockedInAmount;
+    }
 }

@@ -123,12 +123,14 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     
     /**
      * @param _sellingToken address of erc20 token
-     * @param _timestamps array of timestamps
-     * @param _prices price exchange
-     * @param _amountRaised raised amount
+     * @param _priceSettings PriceSettings struct's array
+     *  uint64 timestamp timestamp
+     *  uint256 price price exchange
+     *  uint256 amountRaised raised amount
      * @param _endTime after this time exchange stop
-     * @param _thresholds thresholds
-     * @param _bonuses bonuses
+     * @param _bonusSettings ThresholdBonuses struct's array
+     *  uint256 threshold thresholds
+     *  uint256 bonus bonuses
      * @param _ownerCanWithdraw enum option where:
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
@@ -137,17 +139,18 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address contractAddress;
 	 *	bytes4 method;
 	 *	uint8 role;
+     * @param _lockedInPrice lockedInPrice struct
+     *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
+     *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
     function produce(
         address _sellingToken,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        ISalesStructs.PriceSettings[] memory _priceSettings,
         uint64 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
-        IWhitelist.WhitelistStruct memory _whitelistData
+        IWhitelist.WhitelistStruct memory _whitelistData,
+        ISalesStructs.LockedInPrice memory _lockedInPrice
     ) 
         public 
         nonReentrant
@@ -157,14 +160,12 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         
         ISales(instance).init(
             _sellingToken,
-            _timestamps,
-            _prices,
-            _amountRaised,
+            _priceSettings,
             _endTime,
-            _thresholds,
-            _bonuses,
+            _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
+            _lockedInPrice,
             costManager,
             _msgSender()
         );
@@ -177,12 +178,14 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     /**
      * @param _payToken address of token"s pay
      * @param _sellingToken address of erc20 token
-     * @param _timestamps array of timestamps
-     * @param _prices price exchange
-     * @param _amountRaised raised amount
+     * @param _priceSettings PriceSettings struct's array
+     *  uint64 timestamp timestamp
+     *  uint256 price price exchange
+     *  uint256 amountRaised raised amount
      * @param _endTime after this time exchange stop
-     * @param _thresholds thresholds
-     * @param _bonuses bonuses
+     * @param _bonusSettings ThresholdBonuses struct's array
+     *  uint256 threshold thresholds
+     *  uint256 bonus bonuses
      * @param _ownerCanWithdraw enum option where:
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
@@ -191,18 +194,19 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address contractAddress;
 	 *	bytes4 method;
 	 *	uint8 role;
+     * @param _lockedInPrice lockedInPrice struct
+     *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
+     *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
     function produceToken(
         address _payToken,
         address _sellingToken,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        ISalesStructs.PriceSettings[] memory _priceSettings,
         uint64 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
-        IWhitelist.WhitelistStruct memory _whitelistData
+        IWhitelist.WhitelistStruct memory _whitelistData,
+        ISalesStructs.LockedInPrice memory _lockedInPrice
     ) 
         public 
         nonReentrant
@@ -213,14 +217,12 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         ISalesToken(instance).init(
             _payToken,
             _sellingToken,
-            _timestamps,
-            _prices,
-            _amountRaised,
+            _priceSettings,
             _endTime,
-            _thresholds,
-            _bonuses,
+            _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
+            _lockedInPrice,
             costManager,
             _msgSender()
         );
@@ -235,12 +237,14 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      * @param _sellingToken address of erc20 token
      * @param _token0 stable coin like USDT,USDC.
      * @param _token1 Wrapped token. WETH, or WBNB for binance
-     * @param _timestamps array of timestamps
-     * @param _prices price exchange
-     * @param _amountRaised raised amount
+     * @param _priceSettings PriceSettings struct's array
+     *  uint64 timestamp timestamp
+     *  uint256 price price exchange
+     *  uint256 amountRaised raised amount
      * @param _endTime after this time exchange stop
-     * @param _thresholds thresholds
-     * @param _bonuses bonuses
+     * @param _bonusSettings ThresholdBonuses struct's array
+     *  uint256 threshold thresholds
+     *  uint256 bonus bonuses
      * @param _ownerCanWithdraw enum option where:
      *  0 -owner can not withdraw tokens
      *  1 -owner can withdraw tokens only after endTimePassed
@@ -249,19 +253,20 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address contractAddress;
 	 *	bytes4 method;
 	 *	uint8 role;
+     * @param _lockedInPrice lockedInPrice struct
+     *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
+     *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
     function produceAggregator(
         address _sellingToken,
         address _token0,
         address _token1,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        ISalesStructs.PriceSettings[] memory _priceSettings,
         uint64 _endTime,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
-        IWhitelist.WhitelistStruct memory _whitelistData
+        IWhitelist.WhitelistStruct memory _whitelistData,
+        ISalesStructs.LockedInPrice memory _lockedInPrice
     ) 
         public 
         nonReentrant
@@ -273,14 +278,12 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
             _sellingToken,
             _token0,
             _token1,
-            _timestamps,
-            _prices,
-            _amountRaised,
+            _priceSettings,
             _endTime,
-            _thresholds,
-            _bonuses,
+            _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
+            _lockedInPrice,
             costManager,
             _msgSender()
         );
