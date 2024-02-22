@@ -64,6 +64,18 @@ describe("Sales", function () {
         const prices = [100000n, 150000n, 180000n]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
         //prices = [100000000, 150000000, 180000000]; // 1 eth got 1 token and so on
         const lastTime = blockTime+8n*timePeriod;
+        const amountRaisedEx = [
+            0n, 
+            ethers.parseEther('1000000'),//MILLION.mul(ONE_ETH), 
+            ethers.parseEther('2000000'),//TWO.mul(MILLION).mul(ONE_ETH), 
+
+        ];
+
+        const priceSettings = [
+            [timestamps[0], prices[0], amountRaisedEx[0]],
+            [timestamps[1], prices[1], amountRaisedEx[1]],
+            [timestamps[1], prices[2], amountRaisedEx[2]]
+        ];
 
         const enumWithdrawOption = {
             never: 0,
@@ -85,12 +97,7 @@ describe("Sales", function () {
         ];
 
 
-        const amountRaisedEx = [
-            0n, 
-            ethers.parseEther('1000000'),//MILLION.mul(ONE_ETH), 
-            ethers.parseEther('2000000'),//TWO.mul(MILLION).mul(ONE_ETH), 
-
-        ];
+        
         const bonuses = [10n, 20n, 50n];  //[10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
 
         var SalesMockF = await ethers.getContractFactory("SalesMock");    
@@ -167,13 +174,15 @@ describe("Sales", function () {
             trustedForwarder,
             //
             blockTime,
-            timestamps,
-            prices,
+            // timestamps,
+            // prices,
+            // amountRaisedEx,
+            priceSettings,
+            //---
             lastTime,
             enumWithdrawOption,
             dontUseWhitelist,
             thresholds,
-            amountRaisedEx,
             bonuses,
             //
             SalesFactory,
