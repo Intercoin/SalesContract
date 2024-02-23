@@ -23,4 +23,5 @@ interface ISalesStructs {
         uint256 minimumLockedInAmount;
         uint256 maximumLockedInAmount;
     }
+
 }
