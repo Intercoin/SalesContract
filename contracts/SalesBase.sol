@@ -80,7 +80,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256 maximumLockedInAmount;
     struct LockedPrice {
         uint256 price;
-        uint256 boughtAmount;
+        uint256 boughtAmount; // bought by locked price
+        uint256 totalAmount; // total bought even if not in locked 
         bool exists;
     }
     mapping(address => LockedPrice) lockedPrice;
@@ -311,15 +312,18 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         //     tokenPrice,
         //     true
         // );
+
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
             if (!lockedPrice[sender].exists) {
                 lockedPrice[sender].exists = true;
+
                 lockedPrice[sender].price = tokenPrices[1];
             }
             lockedPrice[sender].boughtAmount += tokens2Send[1];
             
             // we can't exceed maximumLockedInAmount. we calculated it in getTokenAmount
         }
+        lockedPrice[sender].totalAmount += totalAmount2Send;
 
         for(uint256 i = 0; i < inputAmounts.length;  i++) {
             if (inputAmounts[i] != 0 && tokenPrices[i] != 0) {
@@ -571,43 +575,93 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     ) {
         // 0 - main
         // 1 - lockedprice
-
         uint256 defaultTokenPrice = getTokenPrice();
         uint256 defaultAmount2send = _getTokenAmount(inputAmount, defaultTokenPrice);
 
-        // "minimum locked in price" are off
-        if (minimumLockedInAmount == 0 || maximumLockedInAmount == 0) {
+        
+        if (
+            minimumLockedInAmount == 0 || 
+            maximumLockedInAmount == 0 ||
+            lockedPrice[sender].totalAmount > maximumLockedInAmount
+        ) {
+            // "minimum locked in price" are off
 
             totalAmount2Send = defaultAmount2send;
             tokens2Send[0] = defaultAmount2send;
             inputAmounts[0] = inputAmount;
             tokenPrices[0] = defaultTokenPrice;
-
         } else {
             // "minimum locked in price" are on
 
             //need to calculate how much user should get by usual price and how much by special
             uint256 leftByLockedPrice;
+
             if (lockedPrice[sender].exists) {
-                leftByLockedPrice = maximumLockedInAmount - lockedPrice[sender].boughtAmount;
+                    leftByLockedPrice = maximumLockedInAmount - lockedPrice[sender].boughtAmount;
             } else {
-                // 
-                if (defaultAmount2send > minimumLockedInAmount) {
-                    leftByLockedPrice = maximumLockedInAmount - minimumLockedInAmount;
+                if (
+                    //    -----++.+++----------------
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) > minimumLockedInAmount &&
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) < maximumLockedInAmount
+                ) {
+                    leftByLockedPrice = (lockedPrice[sender].totalAmount + defaultAmount2send) - minimumLockedInAmount  - lockedPrice[sender].boughtAmount;
+                } else if (
+                    //    -----+++++---.-------------
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) > maximumLockedInAmount
+                ) {
+                    leftByLockedPrice = maximumLockedInAmount - minimumLockedInAmount  - lockedPrice[sender].boughtAmount;
                 }
             }
 
-            if (leftByLockedPrice > 0) {
-                totalAmount2Send += leftByLockedPrice;
-                tokens2Send[1] = leftByLockedPrice;
-                inputAmounts[1] = _getInputAmount(leftByLockedPrice, lockedPrice[sender].price);
-                tokenPrices[1] = lockedPrice[sender].price;
-            }
+            if (leftByLockedPrice > 0) { // then available to get tokens with locked price
+                //try to calcualte how much available with current price
+                uint256 currentLockedPrice;
+                if (lockedPrice[sender].exists) {
+                    currentLockedPrice = lockedPrice[sender].price;
 
-            totalAmount2Send += defaultAmount2send - leftByLockedPrice;
-            tokens2Send[0] = defaultAmount2send - leftByLockedPrice;
-            inputAmounts[0] = inputAmount - inputAmounts[1];
-            tokenPrices[0] = defaultTokenPrice;
+                } else {
+                    currentLockedPrice = defaultTokenPrice;
+                }
+
+                if (lockedPrice[sender].exists) {
+
+                    // buy as possible
+                    uint256 howMuchUselWillBuyByLockedPrice = _getTokenAmount(inputAmount, currentLockedPrice);
+
+                    if (maximumLockedInAmount < lockedPrice[sender].boughtAmount + howMuchUselWillBuyByLockedPrice) {
+                        tokens2Send[1] = maximumLockedInAmount-lockedPrice[sender].boughtAmount;
+                        inputAmounts[1] = _getInputAmount(tokens2Send[1], currentLockedPrice);
+                        tokenPrices[1] = currentLockedPrice;
+
+                        inputAmounts[0] = inputAmount - inputAmounts[1];
+                        tokens2Send[0] = _getTokenAmount(inputAmounts[0], defaultTokenPrice);
+                        tokenPrices[0] = defaultTokenPrice;
+                    } else {
+                        tokens2Send[1] = howMuchUselWillBuyByLockedPrice;
+                        inputAmounts[1] = inputAmount;
+                        tokenPrices[1] = leftByLockedPrice;
+
+                        tokens2Send[0] = 0;
+                        inputAmounts[0] = 0;
+                        tokenPrices[0] = 0;
+                    }
+                } else {
+                    tokens2Send[1] = leftByLockedPrice;
+                    inputAmounts[1] = _getInputAmount(leftByLockedPrice, currentLockedPrice);
+                    tokenPrices[1] = currentLockedPrice;
+                    
+                    inputAmounts[0] = inputAmount - inputAmounts[1];
+                    tokenPrices[0] = defaultTokenPrice;
+                    tokens2Send[0] = _getTokenAmount(inputAmounts[0], defaultTokenPrice);
+                }
+
+                totalAmount2Send = tokens2Send[0] + tokens2Send[1];
+            } else {
+                tokens2Send[0] = defaultAmount2send;
+                inputAmounts[0] = inputAmount;
+                tokenPrices[0] = defaultTokenPrice;
+                totalAmount2Send = tokens2Send[0] + tokens2Send[1];
+            }
         }
     }
     

@@ -644,8 +644,7 @@ describe("Sales", function () {
             // send ETH to Contract
             await accountTwo.sendTransaction({
                 to: SalesInstance.target, 
-                value: amountETHSendToContract,
-                gasLimit: 180000
+                value: amountETHSendToContract
             });
 
             var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
@@ -1039,6 +1038,238 @@ describe("Sales", function () {
             expect(accountOneBalanceMiddle).to.be.eq(base+(base*(10n)/(100n)));
             expect(accountOneBalanceAfter).to.be.eq(base+(base*(20n)/(100n)));
         });
+        describe("test locked in Price", function () {
+            it('shouldn\'t be locked up', async () => {
+                
+                const useLockedInAmount = [
+                    BigInt(ethers.parseEther('10')),//uint256 minimumLockedInAmount;
+                    BigInt(ethers.parseEther('100'))//uint256 maximumLockedInAmount;
+                ];
+                const {
+                    owner,
+                    accountTwo,
+                    prices,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption,
+                    dontUseWhitelist,
+                    ERC20MintableInstance,
+                    SalesFactory
+                } = await loadFixture(deploy);
+                
+                const tx = await SalesFactory.connect(owner).produce(
+                    ERC20MintableInstance.target,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption.never,
+                    dontUseWhitelist,
+                    useLockedInAmount
+                );
+
+                const rc = await tx.wait(); // 0ms, as tx is already confirmed
+                const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
+                const [instance,] = event.args;
+
+                const SalesInstance = await ethers.getContractAt("Sales",instance);   
+
+                const fourthPartOfMinimum = useLockedInAmount[0]/FOUR;
+                const amountETHSendToContractToBuyBeforeMinimum = prices[0] * fourthPartOfMinimum/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMinimum = prices[0] * useLockedInAmount[0]*TWO/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMaximum = prices[0] * useLockedInAmount[1]*TWO/BigInt('100000000');
+
+                await ERC20MintableInstance.connect(owner).mint(SalesInstance.target , 1000000n*1000000n*1000000n*ONE_ETH);
+
+                var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContractToBuyBeforeMinimum
+                });
+
+                var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContractToBuyBeforeMinimum
+                });
+                var accountTwoBalanceAfter2 = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContractToBuyBeforeMinimum
+                });
+
+                expect(accountTwoBalanceBefore).to.be.eq(ZERO);
+                expect(accountTwoBalanceAfter - accountTwoBalanceBefore).to.be.eq(fourthPartOfMinimum);
+                expect(accountTwoBalanceAfter2 - accountTwoBalanceAfter).to.be.eq(fourthPartOfMinimum);
+
+
+            });
+
+            it('should be locked up after buy minimum', async () => {
+                
+                const useLockedInAmount = [
+                    BigInt(ethers.parseEther('10')),//uint256 minimumLockedInAmount;
+                    BigInt(ethers.parseEther('100'))//uint256 maximumLockedInAmount;
+                ];
+                const {
+                    owner,
+                    accountTwo,
+                    accountThree,
+                    prices,
+                    amountRaisedEx,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption,
+                    dontUseWhitelist,
+                    ERC20MintableInstance,
+                    SalesFactory
+                } = await loadFixture(deploy);
+                
+                const tx = await SalesFactory.connect(owner).produce(
+                    ERC20MintableInstance.target,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption.never,
+                    dontUseWhitelist,
+                    useLockedInAmount
+                );
+
+                const rc = await tx.wait(); // 0ms, as tx is already confirmed
+                const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
+                const [instance,] = event.args;
+
+                const SalesInstance = await ethers.getContractAt("SalesMock",instance);   
+
+                const fourthPartOfMinimum = useLockedInAmount[0]/FOUR;
+                const amountETHSendToContractToBuyBeforeMinimum = prices[0] * fourthPartOfMinimum/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMinimum = prices[0] * useLockedInAmount[0]*TWO/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMaximum = prices[0] * useLockedInAmount[1]*TWO/BigInt('100000000');
+
+                await ERC20MintableInstance.connect(owner).mint(SalesInstance.target , 1000000n*1000000n*1000000n*ONE_ETH);
+
+                var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContractToBuyOverMinimum
+                });
+
+                var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+                expect(accountTwoBalanceBefore).to.be.eq(ZERO);
+                expect(accountTwoBalanceAfter - accountTwoBalanceBefore).to.be.eq(useLockedInAmount[0]*TWO);
+
+                // hardcode amount raised for 2nd period to turn on 2nd price
+                await SalesInstance.connect(owner).setTotalAmountRaised(amountRaisedEx[1] + BigInt('1'));
+
+                // AccountThree should buy on new price
+                var accountThreeBalanceBefore = await ERC20MintableInstance.balanceOf(accountThree.address);
+
+                await accountThree.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: (prices[1] * fourthPartOfMinimum/BigInt('100000000'))
+                });
+
+                var accountThreeBalanceAfter = await ERC20MintableInstance.balanceOf(accountThree.address);
+
+                expect(accountThreeBalanceAfter - accountThreeBalanceBefore).to.be.eq(fourthPartOfMinimum);
+
+                // accountTwo should buy on locked price
+                var accountTwoBalance2Before = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract to buy 
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: prices[0] * fourthPartOfMinimum/BigInt('100000000')
+                });
+                var accountTwoBalance2After = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+                expect(accountTwoBalance2After - accountTwoBalance2Before).to.be.eq(fourthPartOfMinimum);
+                
+            });
+
+            it('after maximum exceeded,  price should be as expected', async () => {
+                const useLockedInAmount = [
+                    BigInt(ethers.parseEther('10')),//uint256 minimumLockedInAmount;
+                    BigInt(ethers.parseEther('100'))//uint256 maximumLockedInAmount;
+                ];
+                const {
+                    owner,
+                    accountTwo,
+                    accountThree,
+                    prices,
+                    amountRaisedEx,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption,
+                    dontUseWhitelist,
+                    ERC20MintableInstance,
+                    SalesFactory
+                } = await loadFixture(deploy);
+                
+                const tx = await SalesFactory.connect(owner).produce(
+                    ERC20MintableInstance.target,
+                    priceSettings,
+                    lastTime,
+                    thresholdBonuses,
+                    enumWithdrawOption.never,
+                    dontUseWhitelist,
+                    useLockedInAmount
+                );
+
+                const rc = await tx.wait(); // 0ms, as tx is already confirmed
+                const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
+                const [instance,] = event.args;
+
+                const SalesInstance = await ethers.getContractAt("SalesMock",instance);   
+
+                const fourthPartOfMinimum = useLockedInAmount[0]/FOUR;
+                const amountETHSendToContractToBuyBeforeMinimum = prices[0] * fourthPartOfMinimum/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMinimum = prices[0] * useLockedInAmount[0]*TWO/BigInt('100000000');
+                const amountETHSendToContractToBuyOverMaximum = prices[0] * useLockedInAmount[1]*TWO/BigInt('100000000');
+
+                await ERC20MintableInstance.connect(owner).mint(SalesInstance.target , 1000000n*1000000n*1000000n*ONE_ETH);
+
+                var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // buy to jump over maximum
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContractToBuyOverMaximum
+                });
+                var accountTwoBalanceAfter = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+
+
+                // hardcode amount raised for 2nd period to turn on 2nd price
+                await SalesInstance.connect(owner).setTotalAmountRaised(amountRaisedEx[1] + BigInt('1'));
+
+                var accountTwoBalance2Before = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: (prices[1] * fourthPartOfMinimum/BigInt('100000000'))
+                });
+
+                var accountTwoBalance2After = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+                // // amount by locked price
+                // var tokensBoughtByLockedPrice = useLockedInAmount[1] - useLockedInAmount[0]
+                // var amountETHToBuyByLockedPrice = (prices[0] * (useLockedInAmount[1] - useLockedInAmount[0])/BigInt('100000000'));
+                // var amountETH2 = useLockedInAmount[0]*TWO - amountETHToBuyByLockedPrice;
+                // var tokensBoughtByUsualPrice = amountETH2 * BigInt('100000000') / prices[0];
+
+
+                // expect(accountTwoBalanceAfter - accountTwoBalanceBefore).to.be.eq(tokensBoughtByUsualPrice + tokensBoughtByLockedPrice);
+                expect(accountTwoBalanceAfter - accountTwoBalanceBefore).to.be.eq(useLockedInAmount[1]*TWO);
+
+                expect(accountTwoBalance2After - accountTwoBalance2Before).to.be.eq(fourthPartOfMinimum);
+            }); 
+        }); 
 
         describe("test commissions", function () {
             async function deployForTestCommissions() {
@@ -1549,8 +1780,7 @@ describe("Sales", function () {
     
                 await accountTwo.sendTransaction({
                     to: SalesInstance.target, 
-                    value: amountETHSendToContract,
-                    gasLimit: 180000
+                    value: amountETHSendToContract
                 });
                     
                 let tmp = await ethers.provider.send("eth_blockNumber",[]);
@@ -1618,8 +1848,7 @@ describe("Sales", function () {
                     // send ETH to Contract
                     await accountTwo.sendTransaction({
                         to: SalesInstance.target, 
-                        value: amountETHSendToContract,
-                        gasLimit: 180000
+                        value: amountETHSendToContract
                     });
 
                     // var accountTwoBalanceActual = await ERC20MintableBurnable.balanceOf(accountTwo.address);
@@ -1682,8 +1911,7 @@ describe("Sales", function () {
                     // send ETH to Contract
                     await accountThree.sendTransaction({
                         to: SalesInstance.target, 
-                        value: amountETHSendToContract,
-                        gasLimit: 180000
+                        value: amountETHSendToContract
                     });
                     var balanceAfter = await ERC20MintableBurnable.balanceOf(accountThree.address);
 
@@ -1763,8 +1991,7 @@ describe("Sales", function () {
             const amountToAddLiquidity = 1000n * ONE_ETH;
 
             await wrappedNativeTokenAsWETH.connect(accountFive).deposit({
-                value: amountToAddLiquidity * FIVE, // make more WETH
-                //gasLimit: 180000
+                value: amountToAddLiquidity * FIVE // make more WETH
             });
 
             //token0/wrappedNativeToken
@@ -1805,8 +2032,7 @@ describe("Sales", function () {
             var balanceBefore = (await ethers.provider.getBalance(MockDistributeLiquidity.target));
             await owner.sendTransaction({
                 to: MockDistributeLiquidity.target,
-                value: amount,
-                gasLimit: 180000
+                value: amount
             });
 
             var balanceAfter = (await ethers.provider.getBalance(MockDistributeLiquidity.target));
@@ -1850,8 +2076,7 @@ describe("Sales", function () {
 
             await owner.sendTransaction({
                 to: MockDistributeLiquidity.target,
-                value: amount,
-                gasLimit: 180000
+                value: amount
             });
             await MockDistributeLiquidity.addLiquidity();
 
