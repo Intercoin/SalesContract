@@ -71,12 +71,6 @@ describe("Sales", function () {
 
         ];
 
-        const priceSettings = [
-            [timestamps[0], prices[0], amountRaisedEx[0]],
-            [timestamps[1], prices[1], amountRaisedEx[1]],
-            [timestamps[1], prices[2], amountRaisedEx[2]]
-        ];
-
         const enumWithdrawOption = {
             never: 0,
             afterEndTime: 1,
@@ -96,9 +90,25 @@ describe("Sales", function () {
             ethers.parseEther('50'), //FIVE.mul(TEN).mul(ONE_ETH)
         ];
 
-
+        const dontUseLockedInAmount = [
+            ethers.parseEther('0'),//uint256 minimumLockedInAmount;
+            ethers.parseEther('0')//uint256 maximumLockedInAmount;
+        ];
         
         const bonuses = [10n, 20n, 50n];  //[10, 20, 50]; // [0.1, 0.2, 0.5] mul by 100
+
+
+        const priceSettings = [
+            [timestamps[0], prices[0], amountRaisedEx[0]],
+            [timestamps[1], prices[1], amountRaisedEx[1]],
+            [timestamps[1], prices[2], amountRaisedEx[2]]
+        ];
+
+        const thresholdBonuses = [
+            [thresholds[0], bonuses[0]],
+            [thresholds[1], bonuses[1]],
+            [thresholds[2], bonuses[2]],
+        ]
 
         var SalesMockF = await ethers.getContractFactory("SalesMock");    
         var SalesTokenF = await ethers.getContractFactory("SalesTokenMock");
@@ -158,7 +168,6 @@ describe("Sales", function () {
         ]
 
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
-       
         return {
             owner, 
             accountOne, 
@@ -174,16 +183,20 @@ describe("Sales", function () {
             trustedForwarder,
             //
             blockTime,
-            // timestamps,
-            // prices,
-            // amountRaisedEx,
+            timestamps,
+            prices,
+            amountRaisedEx,
             priceSettings,
             //---
             lastTime,
             enumWithdrawOption,
             dontUseWhitelist,
+            dontUseLockedInAmount,
+            //----
             thresholds,
             bonuses,
+            thresholdBonuses,
+            //-------
             //
             SalesFactory,
             ERC20MintableF,
@@ -198,11 +211,18 @@ describe("Sales", function () {
             timestamps,
             prices,
             amountRaisedEx,
+            //--
+            priceSettings,
+            //--
             lastTime,
             thresholds,
             bonuses,
+            //--
+            thresholdBonuses,
+            //---
             enumWithdrawOption,
             dontUseWhitelist,
+            dontUseLockedInAmount,
             SalesFactory,
             ERC20MintableF,
             ERC20MintableInstance
@@ -213,14 +233,12 @@ describe("Sales", function () {
         let tx = await SalesFactory.connect(owner).produceToken(
             Token2PayInstance.target,
             ERC20MintableInstance.target,
-            timestamps,
-            prices,
-            amountRaisedEx,
+            priceSettings,
             lastTime,
-            thresholds,
-            bonuses,
+            thresholdBonuses,
             enumWithdrawOption.anytime,
-            dontUseWhitelist
+            dontUseWhitelist,
+            dontUseLockedInAmount
         );
 
         const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -239,16 +257,26 @@ describe("Sales", function () {
     async function deploySalesInstance() {
 
         const res = await loadFixture(deploy);
+        
         const {
             owner,
+            //----
             timestamps,
             prices,
             amountRaisedEx,
+            //----
+            priceSettings,
+            //----
             lastTime,
+            //----
             thresholds,
             bonuses,
+            //----
+            thresholdBonuses,
+            //---
             enumWithdrawOption,
             dontUseWhitelist,
+            dontUseLockedInAmount,
             SalesFactory,
             ERC20MintableF,
             ERC20MintableInstance
@@ -256,14 +284,12 @@ describe("Sales", function () {
 
         let tx = await SalesFactory.connect(owner).produce(
             ERC20MintableInstance.target,
-            timestamps,
-            prices,
-            amountRaisedEx,
+            priceSettings,
             lastTime,
-            thresholds,
-            bonuses,
+            thresholdBonuses,
             enumWithdrawOption.anytime,
-            dontUseWhitelist
+            dontUseWhitelist,
+            dontUseLockedInAmount
         );
 
         const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -313,28 +339,24 @@ describe("Sales", function () {
             const {
                 owner,
                 accountFive,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption,
                 dontUseWhitelist,
+                dontUseLockedInAmount,
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.never, 
-                dontUseWhitelist
+                dontUseWhitelist,
+                dontUseLockedInAmount
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -371,28 +393,24 @@ describe("Sales", function () {
             const {
                 owner,
                 accountFive,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption,
-                dontUseWhitelist,       
+                dontUseWhitelist,  
+                dontUseLockedInAmount,     
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.afterEndTime, 
-                dontUseWhitelist
+                dontUseWhitelist,
+                dontUseLockedInAmount
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -431,28 +449,24 @@ describe("Sales", function () {
             const {
                 owner,
                 accountFive,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption,
                 dontUseWhitelist,
+                dontUseLockedInAmount,
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.anytime,
-                dontUseWhitelist
+                dontUseWhitelist,
+                dontUseLockedInAmount
             );
 
             let rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -544,9 +558,6 @@ describe("Sales", function () {
             var calculatedAmountOfTokens = amountTokenSendToContract * ethDenom / ratio_TOKEN2_ITR;
             var accountTwoBalanceExpected = accountTwoBalanceBefore + calculatedAmountOfTokens;
 
-            // console.log("prices =", prices);
-            // console.log("amountETHSendToContract    =", (amountETHSendToContract.div(ONE_ETH)).toString());
-            // console.log("calculatedAmountOfTokens   =", (calculatedAmountOfTokens.div(ONE_ETH)).toString());
             expect(accountTwoBalanceActual).to.be.eq(accountTwoBalanceExpected);
 
             let tmp;
@@ -605,7 +616,6 @@ describe("Sales", function () {
                 owner,
                 accountTwo,
                 trustedForwarder,
-                lastTime,
                 ERC20MintableInstance,
                 SalesInstance
             } = await loadFixture(deploySalesInstance);
@@ -642,9 +652,6 @@ describe("Sales", function () {
             var calculatedAmountOfTokens = amountETHSendToContract * ethDenom / ratio_ETH_ITR;
             var accountTwoBalanceExpected = accountTwoBalanceBefore + calculatedAmountOfTokens;
             
-            // console.log("prices =", prices);
-            // console.log("amountETHSendToContract    =", (amountETHSendToContract.div(ONE_ETH)).toString());
-            // console.log("calculatedAmountOfTokens   =", (calculatedAmountOfTokens.div(ONE_ETH)).toString());
             expect(accountTwoBalanceActual).to.be.eq(accountTwoBalanceExpected);
             /*    
             // go to end time
@@ -711,14 +718,11 @@ describe("Sales", function () {
                 accountFourth,
                 accountFive,
                 trustedForwarder,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption,
-                //dontUseWhitelist,
+                dontUseLockedInAmount,
                 SalesFactory,
                 ERC20MintableF
             } = await loadFixture(deploy);
@@ -741,14 +745,12 @@ describe("Sales", function () {
             let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.target,
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.anytime,
-                UseExternalWhitelist
+                UseExternalWhitelist,
+                dontUseLockedInAmount
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -845,17 +847,12 @@ describe("Sales", function () {
             const {
                 owner,
                 accountTwo,
-                accountFourth,
-                accountFive,
                 trustedForwarder,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption,
-                //dontUseWhitelist,
+                dontUseLockedInAmount,
                 SalesFactory,
                 ERC20MintableF
             } = await loadFixture(deploy);
@@ -879,14 +876,12 @@ describe("Sales", function () {
             let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.target,
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                priceSettings,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.anytime,
-                UseExternalWhitelist
+                UseExternalWhitelist,
+                dontUseLockedInAmount
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -924,42 +919,43 @@ describe("Sales", function () {
         });
     
         it('test tokenPrice', async () => {
+            const {
+                owner,
+                trustedForwarder,
+                prices,
+                priceSettings,
+                lastTime,
+                thresholdBonuses,
+                enumWithdrawOption,
+                dontUseWhitelist,
+                dontUseLockedInAmount,
+                SalesFactory,
+                ERC20MintableF
+            } = await loadFixture(deploy);
+
+            var priceSettingsCustom = priceSettings.map(function(arr) {
+                return arr.slice();
+            });
+            
             var amountRaisedCustom = [0, 100, 500];
             // Example:
             //     thresholds = [10000, 25000, 50000]
             //     bonuses = [0.1, 0.2, 0.5]
             //     amountRaised = [0, 100, 500]
-
-            const {
-                owner,
-                accountTwo,
-                accountFourth,
-                accountFive,
-                trustedForwarder,
-                timestamps,
-                prices,
-                //amountRaisedEx,
-                lastTime,
-                thresholds,
-                bonuses,
-                enumWithdrawOption,
-                dontUseWhitelist,
-                SalesFactory,
-                ERC20MintableF
-            } = await loadFixture(deploy);
+            priceSettingsCustom[0][2] = amountRaisedCustom[0];
+            priceSettingsCustom[1][2] = amountRaisedCustom[1];
+            priceSettingsCustom[2][2] = amountRaisedCustom[2];
 
             var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
 
             let tx = await SalesFactory.connect(owner).produce(
                 ERC20MintableInstance.target,
-                timestamps,
-                prices,
-                amountRaisedCustom,
+                priceSettingsCustom,
                 lastTime,
-                thresholds,
-                bonuses,
+                thresholdBonuses,
                 enumWithdrawOption.anytime,
-                dontUseWhitelist
+                dontUseWhitelist,
+                dontUseLockedInAmount
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1061,11 +1057,14 @@ describe("Sales", function () {
                     timestamps,
                     prices,
                     amountRaisedEx,
+                    priceSettings,
                     lastTime,
                     thresholds,
                     bonuses,
+
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     SalesFactory,
                     ERC20MintableF
                 } = res;
@@ -1084,27 +1083,34 @@ describe("Sales", function () {
                 tmp = await ethers.provider.send("eth_blockNumber",[]);
                 tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
                 const currentBlockTime = BigInt(tmp.timestamp);
-                
-
 
                 let tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices, //prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
-                    amountRaisedEx,
+                    // timestamps,
+                    // prices, //prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
+                    // amountRaisedEx,
+                    priceSettings,
+                    //---
                     lastTime,
+                    // [
+                    //     10000n*ONE_ETH, // TEN.mul(THOUSAND).mul(ONE_ETH), 
+                    //     100000n*ONE_ETH, // HUNDRED.mul(THOUSAND).mul(ONE_ETH), 
+                    //     1000000n*ONE_ETH, // THOUSAND.mul(THOUSAND).mul(ONE_ETH)
+                    // ],
+                    // [
+                    //     0n, // ZERO,
+                    //     0n, // ZERO,
+                    //     50n// TEN.mul(FIVE)
+                    // ],
                     [
-                        10000n*ONE_ETH, // TEN.mul(THOUSAND).mul(ONE_ETH), 
-                        100000n*ONE_ETH, // HUNDRED.mul(THOUSAND).mul(ONE_ETH), 
-                        1000000n*ONE_ETH, // THOUSAND.mul(THOUSAND).mul(ONE_ETH)
+                        [10000n*ONE_ETH, 0n],
+                        [100000n*ONE_ETH, 0n],
+                        [1000000n*ONE_ETH, 50n],
                     ],
-                    [
-                        0n, // ZERO,
-                        0n, // ZERO,
-                        50n// TEN.mul(FIVE)
-                    ],
+                    //----
                     enumWithdrawOption.never,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1180,9 +1186,6 @@ describe("Sales", function () {
                     accountTwoBalanceBefore,
                     accountThreeBalanceBefore,
                     accountOwnerBalanceBefore,
-                    // accountEightBalanceBefore,
-                    // accountNineBalanceBefore,
-                    // accountElevenBalanceBefore,
                     totalETHToSend,
                     ERC20MintableInstance,
                     SalesInstance
@@ -1363,32 +1366,28 @@ describe("Sales", function () {
             it('available only for owner', async () => {
                 const {
                     owner,
-                    accountOne,
                     accountTwo,
-                    trustedForwarder,
                     timestamps,
                     prices,
                     amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
-
                 
                 const tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption.never,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1405,31 +1404,27 @@ describe("Sales", function () {
             it('available only with option EnumWithdrawOption.never', async () => {
                 const {
                     owner,
-                    accountOne,
-                    accountTwo,
-                    trustedForwarder,
                     timestamps,
                     prices,
                     amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption.anytime,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1447,31 +1442,27 @@ describe("Sales", function () {
 
                 const {
                     owner,
-                    accountOne,
-                    accountTwo,
-                    trustedForwarder,
                     timestamps,
                     prices,
                     amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption.never,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1488,17 +1479,15 @@ describe("Sales", function () {
             it('"timestamp" should be more that previous "lastTime"', async () => {
                 const {
                     owner,
-                    accountOne,
-                    accountTwo,
-                    trustedForwarder,
                     timestamps,
                     prices,
                     amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
@@ -1506,14 +1495,12 @@ describe("Sales", function () {
                 timestamps[1] = 0n;
                 const tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime+10n*24n*60n*60n,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption.never,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1532,29 +1519,24 @@ describe("Sales", function () {
                     owner,
                     accountOne,
                     accountTwo,
-                    trustedForwarder,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    dontUseLockedInAmount,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
                     ERC20MintableInstance.target,
-                    timestamps,
-                    prices,
-                    amountRaisedEx,
+                    priceSettings,
                     lastTime+10n*24n*60n*60n,
-                    thresholds,
-                    bonuses,
+                    thresholdBonuses,
                     enumWithdrawOption.never,
-                    dontUseWhitelist
+                    dontUseWhitelist,
+                    dontUseLockedInAmount
                 );
 
                 const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1589,23 +1571,15 @@ describe("Sales", function () {
                     const res = await loadFixture(deploy);
                     const {
                         owner,
-                        accountOne,
                         accountTwo,
-                        accountThree,
-                        accountFourth,
-                        accountFive,
-                        accountEight,
-                        accountNine,
-                        accountEleven,
                         trustedForwarder,
-                        timestamps,
                         prices,
-                        amountRaisedEx,
+                        priceSettings,
                         lastTime,
-                        thresholds,
-                        bonuses,
+                        thresholdBonuses,
                         enumWithdrawOption,
                         dontUseWhitelist,
+                        dontUseLockedInAmount,
                         SalesFactory
                     } = res;
 
@@ -1614,14 +1588,12 @@ describe("Sales", function () {
 
                     let tx = await SalesFactory.connect(owner).produce(
                         ERC20MintableBurnable.target,
-                        timestamps,
-                        prices,
-                        amountRaisedEx,
+                        priceSettings,
                         lastTime+10n*24n*60n*60n,
-                        thresholds,
-                        bonuses,
+                        thresholdBonuses,
                         enumWithdrawOption.never,
-                        dontUseWhitelist
+                        dontUseWhitelist,
+                        dontUseLockedInAmount
                     );
 
                     const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1733,12 +1705,16 @@ describe("Sales", function () {
             const {
                 owner,
                 accountFive,
-                timestamps,
-                prices,
-                amountRaisedEx,
+                // timestamps,
+                // prices,
+                // amountRaisedEx,
+                priceSettings,
+                //-----
                 lastTime,
-                thresholds,
-                bonuses,
+                // thresholds,
+                // bonuses,
+                thresholdBonuses,
+                //---
                 enumWithdrawOption,
                 dontUseWhitelist,
                 SalesFactory,

@@ -167,6 +167,10 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
         sellingToken = _sellingToken;
+
+        timestamps = new uint64[](_priceSettings.length);
+        prices = new uint256[](_priceSettings.length);
+        amountRaised = new uint256[](_priceSettings.length);
         for (uint256 i = 0; i<_priceSettings.length; i++) {
             timestamps[i] = _priceSettings[i].timestamp;
             prices[i] = _priceSettings[i].price;
@@ -177,6 +181,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // amountRaised = _amountRaised;
         _endTime = _endTs;
 
+        thresholds = new uint256[](_bonusSettings.length);
+        bonuses = new uint256[](_bonusSettings.length);
         for (uint256 i = 0; i < _bonusSettings.length; i++) {
             thresholds[i] = _bonusSettings[i].threshold;
             bonuses[i] = _bonusSettings[i].bonus;
