@@ -75,6 +75,16 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         address[] participants;
         bool exists;
     }
+
+    uint256 minimumLockedInAmount;
+    uint256 maximumLockedInAmount;
+    struct LockedPrice {
+        uint256 price;
+        uint256 boughtAmount; // bought by locked price
+        uint256 totalAmount; // total bought even if not in locked 
+        bool exists;
+    }
+    mapping(address => LockedPrice) lockedPrice;
     
     mapping(string => Group) groups;
     mapping(address => Participant) participants;
@@ -127,17 +137,20 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         _;
     }
-    
+
     function __SalesBase__init(
         address _sellingToken,
-        uint64[] memory _timestamps,
-        uint256[] memory _prices,
-        uint256[] memory _amountRaised,
+        PriceSettings[] memory _priceSettings,
+        // uint64[] memory _timestamps,
+        // uint256[] memory _prices,
+        // uint256[] memory _amountRaised,
         uint64 _endTs,
-        uint256[] memory _thresholds,
-        uint256[] memory _bonuses,
+        ThresholdBonuses[] memory _bonusSettings,
+        // uint256[] memory _thresholds,
+        // uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
+        LockedInPrice memory _lockedInPrice,
         address _costManager
     ) 
         internal 
@@ -155,15 +168,35 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
         sellingToken = _sellingToken;
-        timestamps = _timestamps;
-        prices = _prices;
-        amountRaised = _amountRaised;
+
+        timestamps = new uint64[](_priceSettings.length);
+        prices = new uint256[](_priceSettings.length);
+        amountRaised = new uint256[](_priceSettings.length);
+        for (uint256 i = 0; i<_priceSettings.length; i++) {
+            timestamps[i] = _priceSettings[i].timestamp;
+            prices[i] = _priceSettings[i].price;
+            amountRaised[i] = _priceSettings[i].amountRaised;
+        }
+        // timestamps = _timestamps;
+        // prices = _prices;
+        // amountRaised = _amountRaised;
         _endTime = _endTs;
-        thresholds = _thresholds;
-        bonuses = _bonuses;
+
+        thresholds = new uint256[](_bonusSettings.length);
+        bonuses = new uint256[](_bonusSettings.length);
+        for (uint256 i = 0; i < _bonusSettings.length; i++) {
+            thresholds[i] = _bonusSettings[i].threshold;
+            bonuses[i] = _bonusSettings[i].bonus;
+        }
+        // thresholds = _thresholds;
+        // bonuses = _bonuses;
+        
         withdrawOption = _ownerCanWithdraw;
 
         whitelistInit(_whitelistData);
+
+        minimumLockedInAmount = _lockedInPrice.minimumLockedInAmount;
+        maximumLockedInAmount = _lockedInPrice.maximumLockedInAmount;
 
         // register interfaces
         _ERC1820_REGISTRY.setInterfaceImplementer(address(this), _TOKENS_SENDER_INTERFACE_HASH, address(this));
@@ -231,7 +264,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         holdTotalFraction += fraction;
     }
-    
+
     function _exchange(uint256 inputAmount) internal virtual returns(uint256) {
         address sender = _msgSender();
 
@@ -243,37 +276,67 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
             revert ExchangeTimeIsOver();
         }
     
-        uint256 tokenPrice = getTokenPrice();
+        // uint256 tokenPrice = getTokenPrice();
+        // uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
 
-        uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
-        if (amount2send == 0) {
+        uint256 totalAmount2Send;
+        uint256[2] memory inputAmounts;
+        uint256[2] memory tokenPrices;
+        uint256[2] memory tokens2Send;
+
+        (totalAmount2Send, inputAmounts, tokenPrices, tokens2Send) = getTokenAmount(sender, inputAmount);
+
+        if (totalAmount2Send == 0) {
             revert CantCalculateAmountOfTokens();
         }
 
         totalIncome += inputAmount;
-        totalAmountRaised += amount2send;
+        totalAmountRaised += totalAmount2Send;
 
         uint256 tokenBalance = IERC777Upgradeable(sellingToken).balanceOf(address(this));
-        if (tokenBalance < amount2send) {
+        if (tokenBalance < totalAmount2Send) {
             revert InsufficientAmount();
         }
 
-        bool success = ERC777Upgradeable(sellingToken).transfer(sender, amount2send);
+        bool success = ERC777Upgradeable(sellingToken).transfer(sender, totalAmount2Send);
         if (!success) {
             revert TransferError();
         }
         
-        emit Exchange(sender, inputAmount, amount2send);
+        emit Exchange(sender, inputAmount, totalAmount2Send);
 
         // bonus calculation
-        _addBonus(
-            sender, 
-            inputAmount,
-            tokenPrice,
-            true
-        );
+        // _addBonus(
+        //     sender, 
+        //     inputAmount,
+        //     tokenPrice,
+        //     true
+        // );
 
-        return amount2send;
+        if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
+            if (!lockedPrice[sender].exists) {
+                lockedPrice[sender].exists = true;
+
+                lockedPrice[sender].price = tokenPrices[1];
+            }
+            lockedPrice[sender].boughtAmount += tokens2Send[1];
+            
+            // we can't exceed maximumLockedInAmount. we calculated it in getTokenAmount
+        }
+        lockedPrice[sender].totalAmount += totalAmount2Send;
+
+        for(uint256 i = 0; i < inputAmounts.length;  i++) {
+            if (inputAmounts[i] != 0 && tokenPrices[i] != 0) {
+                _addBonus(
+                    sender, 
+                    inputAmounts[i],
+                    tokenPrices[i],
+                    true
+                );
+            }
+        }
+
+        return totalAmount2Send;
     }
     
     /**
@@ -485,6 +548,122 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
     }
+/*
+    struct LockedPrice {
+        uint256 price;
+        uint256 boughtAmount;
+        bool exists;
+    }
+    mapping(address => LockedPrice) lockedPrice;
+*/
+
+        // uint256 totalAmount2Send;
+        // uint256[2] inputAmounts;
+        // uint256[2] tokenPrices;
+                // uint256 tokenPrice = getTokenPrice();
+        // uint256 amount2send = _getTokenAmount(inputAmount, tokenPrice);
+
+//(totalAmount2Send, inputAmounts, tokenPrices) = 
+    function getTokenAmount(
+        address sender,
+        uint256 inputAmount
+    ) internal view returns (
+        uint256 totalAmount2Send,
+        uint256[2] memory inputAmounts,
+        uint256[2] memory tokenPrices,
+        uint256[2] memory tokens2Send
+    ) {
+        // 0 - main
+        // 1 - lockedprice
+        uint256 defaultTokenPrice = getTokenPrice();
+        uint256 defaultAmount2send = _getTokenAmount(inputAmount, defaultTokenPrice);
+
+        
+        if (
+            minimumLockedInAmount == 0 || 
+            maximumLockedInAmount == 0 ||
+            lockedPrice[sender].totalAmount > maximumLockedInAmount
+        ) {
+            // "minimum locked in price" are off
+
+            totalAmount2Send = defaultAmount2send;
+            tokens2Send[0] = defaultAmount2send;
+            inputAmounts[0] = inputAmount;
+            tokenPrices[0] = defaultTokenPrice;
+        } else {
+            // "minimum locked in price" are on
+
+            //need to calculate how much user should get by usual price and how much by special
+            uint256 leftByLockedPrice;
+
+            if (lockedPrice[sender].exists) {
+                    leftByLockedPrice = maximumLockedInAmount - lockedPrice[sender].boughtAmount;
+            } else {
+                if (
+                    //    -----++.+++----------------
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) > minimumLockedInAmount &&
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) < maximumLockedInAmount
+                ) {
+                    leftByLockedPrice = (lockedPrice[sender].totalAmount + defaultAmount2send) - minimumLockedInAmount  - lockedPrice[sender].boughtAmount;
+                } else if (
+                    //    -----+++++---.-------------
+                    (lockedPrice[sender].totalAmount + defaultAmount2send) > maximumLockedInAmount
+                ) {
+                    leftByLockedPrice = maximumLockedInAmount - minimumLockedInAmount  - lockedPrice[sender].boughtAmount;
+                }
+            }
+
+            if (leftByLockedPrice > 0) { // then available to get tokens with locked price
+                //try to calcualte how much available with current price
+                uint256 currentLockedPrice;
+                if (lockedPrice[sender].exists) {
+                    currentLockedPrice = lockedPrice[sender].price;
+
+                } else {
+                    currentLockedPrice = defaultTokenPrice;
+                }
+
+                if (lockedPrice[sender].exists) {
+
+                    // buy as possible
+                    uint256 howMuchUselWillBuyByLockedPrice = _getTokenAmount(inputAmount, currentLockedPrice);
+
+                    if (maximumLockedInAmount < lockedPrice[sender].boughtAmount + howMuchUselWillBuyByLockedPrice) {
+                        tokens2Send[1] = maximumLockedInAmount-lockedPrice[sender].boughtAmount;
+                        inputAmounts[1] = _getInputAmount(tokens2Send[1], currentLockedPrice);
+                        tokenPrices[1] = currentLockedPrice;
+
+                        inputAmounts[0] = inputAmount - inputAmounts[1];
+                        tokens2Send[0] = _getTokenAmount(inputAmounts[0], defaultTokenPrice);
+                        tokenPrices[0] = defaultTokenPrice;
+                    } else {
+                        tokens2Send[1] = howMuchUselWillBuyByLockedPrice;
+                        inputAmounts[1] = inputAmount;
+                        tokenPrices[1] = leftByLockedPrice;
+
+                        tokens2Send[0] = 0;
+                        inputAmounts[0] = 0;
+                        tokenPrices[0] = 0;
+                    }
+                } else {
+                    tokens2Send[1] = leftByLockedPrice;
+                    inputAmounts[1] = _getInputAmount(leftByLockedPrice, currentLockedPrice);
+                    tokenPrices[1] = currentLockedPrice;
+                    
+                    inputAmounts[0] = inputAmount - inputAmounts[1];
+                    tokenPrices[0] = defaultTokenPrice;
+                    tokens2Send[0] = _getTokenAmount(inputAmounts[0], defaultTokenPrice);
+                }
+
+                totalAmount2Send = tokens2Send[0] + tokens2Send[1];
+            } else {
+                tokens2Send[0] = defaultAmount2send;
+                inputAmounts[0] = inputAmount;
+                tokenPrices[0] = defaultTokenPrice;
+                totalAmount2Send = tokens2Send[0] + tokens2Send[1];
+            }
+        }
+    }
     
     /**
      * @param groupName group name
@@ -566,13 +745,22 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     }
     /**
      * calculate token's amount
-     * @param amount amount in eth that should be converted in tokenAmount
+     * @param inputAmount amount in eth that should be converted in tokenAmount
      * @param price token price
      */
-    function _getTokenAmount(uint256 amount, uint256 price) internal pure returns (uint256) {
-        return amount * priceDenom / price;
+    function _getTokenAmount(uint256 inputAmount, uint256 price) internal pure returns (uint256) {
+        return inputAmount * priceDenom / price;
     }
     
+    /**
+     * calculate eth's amount
+     * @param tokenAmount amount in token that should be converted in tokenAmount
+     * @param price token price
+     */
+    function _getInputAmount(uint256 tokenAmount, uint256 price) internal pure returns (uint256) {
+        return tokenAmount * price / priceDenom;
+    }
+
     /**
      * @param amount amount of eth
      * @param addr address to send

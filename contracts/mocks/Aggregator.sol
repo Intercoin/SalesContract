@@ -5,7 +5,7 @@ contract Aggregator {
     function latestRoundData(
     )
         public
-        view
+        pure
         returns (
           uint80 roundId,
           int256 answer,
