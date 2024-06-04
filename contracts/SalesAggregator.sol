@@ -7,7 +7,9 @@ import "./SalesBase.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "./libs/FixedPoint.sol";
-import "./libs/SwapSettingsLib.sol";
+//import "./libs/SwapSettingsLib.sol";
+import "@intercoin/liquidity/contracts/interfaces/ILiquidityLib.sol";
+
 /**
 *****************
 TEMPLATE CONTRACT
@@ -110,6 +112,7 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
      * @param _costManager costmanager address
+     * @param _liquidityLib liquidityLib address(see @intercoin/liquiaity pkg)
      */
      function init(
         address _sellingToken,
@@ -122,7 +125,8 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
         WhitelistStruct memory _whitelistData,
         LockedInPrice memory _lockedInPrice,
         address _costManager,
-        address _producedBy
+        address _producedBy,
+        address _liquidityLib
     ) 
         public
         virtual
@@ -140,9 +144,10 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
             _costManager
         );
 
-// setup swap addresses
+        // setup swap addresses
         address uniswapRouterFactory;
-        (, uniswapRouterFactory) = SwapSettingsLib.netWorkSettings();
+
+        (, uniswapRouterFactory) = ILiquidityLib(_liquidityLib).uniswapSettings();
         
         uniswapV2Pair = IUniswapV2Factory(uniswapRouterFactory).getPair(_token0, _token1);
 
@@ -180,6 +185,10 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
             uint256(uint160(_msgSender())),
             usdValue
         );
+    }
+
+    function owner() public view override(ISalesAggregator, SalesBase) returns (address) {
+        return super.owner();
     }
     
     function getPrice() internal view returns(FixedPoint.uq112x112 memory price_) {

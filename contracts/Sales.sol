@@ -156,9 +156,12 @@ contract Sales is SalesBase, ISales {
             uint256(uint160(_msgSender())),
             msg.value
         );
-        
     }
-    
+
+    function owner() public view override(ISales, SalesBase) returns (address) {
+        return super.owner();
+    }
+
     /**
      * @param amount amount of eth
      * @param addr address to send

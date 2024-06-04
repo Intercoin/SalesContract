@@ -149,10 +149,14 @@ describe("Sales", function () {
         let salesAggregatorInstance = await SalesAggregatorF.deploy();
         await salesAggregatorInstance.waitForDeployment();
 
+        var libData = await ethers.getContractFactory("@intercoin/liquidity/contracts/LiquidityLib.sol:LiquidityLib");    
+        const liquidityLib = await libData.deploy();
+
         const SalesFactory = await SalesFactoryF.connect(owner).deploy(
             salesInstance.target,
             salesTokenInstance.target,
             salesAggregatorInstance.target,
+            liquidityLib.target,
             NO_COSTMANAGER,
             releaseManager.target
         );

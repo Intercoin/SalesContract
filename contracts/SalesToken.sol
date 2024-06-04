@@ -164,6 +164,10 @@ contract SalesToken is SalesBase, ISalesToken {
         );
     }
 
+    function owner() public view override(ISalesToken, SalesBase) returns (address) {
+        return super.owner();
+    }
+
     /**
      * @param amount amount of eth
      * @param addr address to send

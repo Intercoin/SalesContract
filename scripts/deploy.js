@@ -36,10 +36,12 @@ async function main() {
 		typeof data_object.implementationFundContract === 'undefined' ||
 		typeof data_object.implementationFundContractAggregator === 'undefined' ||
 		typeof data_object.implementationFundContractToken === 'undefined' ||
+		typeof data_object.liquidityLib === 'undefined' ||
 		typeof data_object.releaseManager === 'undefined' ||
 		!data_object.implementationFundContract ||
 		!data_object.implementationFundContractAggregator ||
 		!data_object.implementationFundContractToken ||
+		!data_object.liquidityLib ||
 		!data_object.releaseManager
 	) {
 		throw("Arguments file: wrong addresses");
@@ -63,6 +65,7 @@ async function main() {
 		data_object.implementationFundContract,
 		data_object.implementationFundContractAggregator,
 		data_object.implementationFundContractToken,
+		data_object.liquidityLib,
 		ZERO_ADDRESS, //costmanager
 		data_object.releaseManager
 	]

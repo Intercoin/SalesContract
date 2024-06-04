@@ -42,5 +42,6 @@ interface ISalesToken is ISalesStructs {
         address _costManager,
         address _producedBy
     ) external;
-    
+
+    function owner() external view returns (address);   
 }

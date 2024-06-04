@@ -29,6 +29,7 @@ interface ISalesAggregator is ISalesStructs {
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
      * @param _costManager costmanager address
+     * @param _liquidityLib liquidityLib address(see @intercoin/liquiaity pkg)
      */
      function init(
         address _sellingToken,
@@ -41,8 +42,11 @@ interface ISalesAggregator is ISalesStructs {
         IWhitelist.WhitelistStruct memory _whitelistData,
         LockedInPrice memory _lockedInPrice,
         address _costManager,
-        address _producedBy
+        address _producedBy,
+        address _liquidityLib
     ) external;
+
+    function owner() external view returns (address);
 }
 
 

@@ -40,4 +40,5 @@ interface ISales is ISalesStructs {
         address _producedBy
     ) external;
     
+    function owner() external view returns (address);
 }

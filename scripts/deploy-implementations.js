@@ -73,16 +73,19 @@ async function main() {
     await implementationFundContractAggregator.waitForDeployment();
     await implementationFundContractToken.waitForDeployment();
 	
+    const liquidityLib = "0x1ea4c4613a4dfdaeeb95a261d11520c90d5d6252";
 	console.log("Implementations:");
 	console.log("  FundContract deployed at:            ", implementationFundContract.target);
     console.log("  FundContractAggregator deployed at:  ", implementationFundContractAggregator.target);
 	console.log("  FundContractToken deployed at:       ", implementationFundContractToken.target);
+    console.log("  liquidityLib uses at:                ", liquidityLib);//1.0.0
     console.log("Linked with manager:");
     console.log("  Release manager:", RELEASE_MANAGER);
 
 	data_object.implementationFundContract 	        = implementationFundContract.target;
 	data_object.implementationFundContractAggregator= implementationFundContractAggregator.target;
     data_object.implementationFundContractToken     = implementationFundContractToken.target;
+    data_object.liquidityLib                        = liquidityLib;
     data_object.releaseManager	                    = RELEASE_MANAGER;
 
 	const deployerBalanceAfter = await ethers.provider.getBalance(deployer.address);

@@ -712,6 +712,18 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
             uint256(uint160(newOwner))
         );
     }
+    
+    function owner(
+    ) 
+        public 
+        view 
+        virtual
+        override(IPresale,OwnableUpgradeable)
+        returns (address) 
+    {
+        return super.owner();
+    }
+
 
     function availableToClaim() internal view returns(uint256) {
         return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
@@ -726,7 +738,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         returns (address signer) 
     {
         return TrustedForwarder._msgSender();
-        
     }
 
     function _getGroupBonus(string memory groupName) internal view returns(uint256 bonus) {
