@@ -59,33 +59,35 @@ async function main() {
 	// };
 
 	
-    const deployerBalanceBefore = await deployer.getBalance();
+    const deployerBalanceBefore = await ethers.provider.getBalance(deployer.address);
     console.log("Account balance:", (deployerBalanceBefore).toString());
 
-	const FundContractF = await ethers.getContractFactory("FundContract");
-	const FundContractAggregatorF = await ethers.getContractFactory("FundContractAggregator");
-    const FundContractTokenF = await ethers.getContractFactory("FundContractToken");
+	const FundContractF = await ethers.getContractFactory("Sales");
+	const FundContractAggregatorF = await ethers.getContractFactory("SalesAggregator");
+    const FundContractTokenF = await ethers.getContractFactory("SalesToken");
 	    
 	let implementationFundContract          = await FundContractF.connect(deployer).deploy();
     let implementationFundContractAggregator= await FundContractAggregatorF.connect(deployer).deploy();
     let implementationFundContractToken     = await FundContractTokenF.connect(deployer).deploy();
-	
+	await implementationFundContract.waitForDeployment();
+    await implementationFundContractAggregator.waitForDeployment();
+    await implementationFundContractToken.waitForDeployment();
 	
 	console.log("Implementations:");
-	console.log("  FundContract deployed at:            ", implementationFundContract.address);
-    console.log("  FundContractAggregator deployed at:  ", implementationFundContractAggregator.address);
-	console.log("  FundContractToken deployed at:       ", implementationFundContractToken.address);
+	console.log("  FundContract deployed at:            ", implementationFundContract.target);
+    console.log("  FundContractAggregator deployed at:  ", implementationFundContractAggregator.target);
+	console.log("  FundContractToken deployed at:       ", implementationFundContractToken.target);
     console.log("Linked with manager:");
     console.log("  Release manager:", RELEASE_MANAGER);
 
-	data_object.implementationFundContract 	        = implementationFundContract.address;
-	data_object.implementationFundContractAggregator= implementationFundContractAggregator.address;
-    data_object.implementationFundContractToken     = implementationFundContractToken.address;
+	data_object.implementationFundContract 	        = implementationFundContract.target;
+	data_object.implementationFundContractAggregator= implementationFundContractAggregator.target;
+    data_object.implementationFundContractToken     = implementationFundContractToken.target;
     data_object.releaseManager	                    = RELEASE_MANAGER;
 
-	const deployerBalanceAfter = await deployer.getBalance();
-	console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
-	console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+	const deployerBalanceAfter = await ethers.provider.getBalance(deployer.address);
+	console.log("Spent:", ethers.formatUnits(deployerBalanceBefore - deployerBalanceAfter), 18);
+	console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 
 	//---
 	const ts_updated = Date.now();

@@ -36,19 +36,21 @@ async function main() {
 		options
 	]
 
-    const deployerBalanceBefore = await deployer.getBalance();
+    const deployerBalanceBefore = await ethers.provider.getBalance(deployer.address);
     console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const TokenF = await ethers.getContractFactory("Token");
 
 	this.token = await TokenF.connect(deployer).deploy(...params);
 
-	console.log("Token deployed at:", this.token.address);
+	await this.token.waitForDeployment();
+
+	console.log("Token deployed at:", this.token.target);
 	console.log("with params:", [..._params]);
 
-	const deployerBalanceAfter = await deployer.getBalance();
-	console.log("Spent:", ethers.utils.formatEther(deployerBalanceBefore.sub(deployerBalanceAfter)));
-	console.log("gasPrice:", ethers.utils.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
+	const deployerBalanceAfter = await ethers.provider.getBalance(deployer.address);
+	console.log("Spent:", ethers.formatUnits(deployerBalanceBefore - deployerBalanceAfter), 18);
+	console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 }
 
 main()
