@@ -42,6 +42,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256 public totalIncomeAlreadyClaimed;
 
     uint64 public _endTime;
+    uint64 public _endTimeForCompensation;
 
     uint256 public totalAmountRaised;
     
@@ -101,6 +102,14 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
+
+    struct Compensation{
+        uint256 counter;
+        uint256[] sent;
+        FixedPoint.uq112x112[] price; // FixedPoint value
+        uint256 claimedCounter;
+    }
+    mapping(address => Compensation) compensations;
 
     EnumWithdraw public withdrawOption;
 
@@ -195,6 +204,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // prices = _prices;
         // amountRaised = _amountRaised;
         _endTime = _commonSettings.endTime;
+        _endTimeForCompensation = _commonSettings.endTimeForCompensation;
 
         thresholds = new uint256[](_bonusSettings.length);
         bonuses = new uint256[](_bonusSettings.length);
@@ -327,6 +337,14 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         //     true
         // );
 
+        //compensations
+        Compensation storage compensationData = compensations[sender];
+        uint256 index = compensationData.counter;
+        compensationData.counter +=1;
+        compensationData.sent.push(totalAmount2Send);
+        compensationData.price.push(getPrice());
+        //----------
+
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
             if (!lockedPrice[sender].exists) {
                 lockedPrice[sender].exists = true;
@@ -352,6 +370,52 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         return totalAmount2Send;
     }
+
+    function compensation() public {
+        address sender = msg.sender;
+
+        Compensation storage compensationData = compensations[sender];
+        require(
+            _endTime < block.timestamp && 
+            _endTimeForCompensation > block.timestamp
+        );
+        require(compensationData.counter > compensationData.claimedCounter);
+        
+        FixedPoint.uq112x112 memory currentPrice = getPrice();
+        uint256 compensationAmount = 0;
+        for(uint256 i = compensationData.claimedCounter+1; i <= compensationData.counter; ++i) {
+            // compensate =  [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
+            // it can be lossy than use sent tokens more that 1e15 (uint112)
+            if (compensationData.price[i]._x < currentPrice._x) {
+                compensationAmount += (
+                    FixedPoint.divuq(
+                        FixedPoint.encode(uint112(compensationData.sent[i])), // not more than 1e15 tokens
+                        FixedPoint.divuq(
+                            compensationData.price[i],
+                            currentPrice
+                        )
+                    ).decode()
+                );
+            }
+        }
+
+        compensationData.claimedCounter = compensationData.counter;
+
+        if (compensationAmount > 0) {
+            bool success = ERC777Upgradeable(sellingToken).transfer(sender, compensationAmount);
+            if (!success) {
+                revert TransferError();
+            }
+        }
+
+    }
+// struct Compensation{
+//     uint256 counter;
+//     uint256[] sent;
+//     FixedPoint.uq112x112[] price; // FixedPoint value
+//     uint256 claimedCounter;
+// }
+// mapping(address => Compensation) compensations;
     
     /**
      * withdraw some tokens to address
