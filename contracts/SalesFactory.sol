@@ -85,7 +85,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     address public immutable salesImplementation;
     address public immutable salesTokenImplementation;
     address public immutable salesAggregatorImplementation;
-    address public immutable liquidityLib;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
@@ -94,7 +93,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         address salesImpl,
         address salesTokenImpl,
         address salesAggregatorImpl,
-        address liquidityLib_,
         address costManager,
         address releaseManager
     ) 
@@ -104,7 +102,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         salesImplementation = salesImpl;
         salesTokenImplementation = salesTokenImpl;
         salesAggregatorImplementation = salesAggregatorImpl;
-        liquidityLib = liquidityLib_;
 
     }
     ////////////////////////////////////////////////////////////////////////
