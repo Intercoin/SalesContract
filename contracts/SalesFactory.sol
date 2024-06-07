@@ -85,7 +85,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     address public immutable salesImplementation;
     address public immutable salesTokenImplementation;
     address public immutable salesAggregatorImplementation;
-    address public immutable liquidityLib;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
@@ -94,7 +93,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         address salesImpl,
         address salesTokenImpl,
         address salesAggregatorImpl,
-        address liquidityLib_,
         address costManager,
         address releaseManager
     ) 
@@ -104,7 +102,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         salesImplementation = salesImpl;
         salesTokenImplementation = salesTokenImpl;
         salesAggregatorImplementation = salesAggregatorImpl;
-        liquidityLib = liquidityLib_;
 
     }
     ////////////////////////////////////////////////////////////////////////
@@ -125,12 +122,17 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     }
     
     /**
-     * @param _sellingToken address of erc20 token
+     * @param _commonSettings CommonSettings data struct
+     *  address sellingToken address of ITR token
+     *  address token0 USD Coin
+     *  address token1 Wrapped token (WETH,WBNB,...)
+     *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+     *  address endTime after this time exchange stop
+     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
      *  uint256 amountRaised raised amount
-     * @param _endTime after this time exchange stop
      * @param _bonusSettings ThresholdBonuses struct's array
      *  uint256 threshold thresholds
      *  uint256 bonus bonuses
@@ -147,9 +149,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
     function produce(
-        address _sellingToken,
+        ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
-        uint64 _endTime,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
@@ -162,9 +163,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         address instance = address(salesImplementation).clone();
         
         ISales(instance).init(
-            _sellingToken,
+            _commonSettings,
             _priceSettings,
-            _endTime,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
@@ -180,12 +180,17 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     
     /**
      * @param _payToken address of token"s pay
-     * @param _sellingToken address of erc20 token
+     * @param _commonSettings CommonSettings data struct
+     *  address sellingToken address of ITR token
+     *  address token0 USD Coin
+     *  address token1 Wrapped token (WETH,WBNB,...)
+     *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+     *  address endTime after this time exchange stop
+     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
      *  uint256 amountRaised raised amount
-     * @param _endTime after this time exchange stop
      * @param _bonusSettings ThresholdBonuses struct's array
      *  uint256 threshold thresholds
      *  uint256 bonus bonuses
@@ -203,9 +208,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      */
     function produceToken(
         address _payToken,
-        address _sellingToken,
+        ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
-        uint64 _endTime,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
@@ -219,9 +223,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         
         ISalesToken(instance).init(
             _payToken,
-            _sellingToken,
+            _commonSettings,
             _priceSettings,
-            _endTime,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
@@ -237,14 +240,17 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
 
     /**
      * @dev way to set prices in $. $ calculated via ratio from Pair USDCoin-WETH
-     * @param _sellingToken address of erc20 token
-     * @param _token0 stable coin like USDT,USDC.
-     * @param _token1 Wrapped token. WETH, or WBNB for binance
+     * @param _commonSettings CommonSettings data struct
+     *  address sellingToken address of ITR token
+     *  address token0 USD Coin
+     *  address token1 Wrapped token (WETH,WBNB,...)
+     *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+     *  address endTime after this time exchange stop
+     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
      *  uint256 amountRaised raised amount
-     * @param _endTime after this time exchange stop
      * @param _bonusSettings ThresholdBonuses struct's array
      *  uint256 threshold thresholds
      *  uint256 bonus bonuses
@@ -261,11 +267,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
     function produceAggregator(
-        address _sellingToken,
-        address _token0,
-        address _token1,
+        ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
-        uint64 _endTime,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
@@ -278,18 +281,14 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         address instance = address(salesAggregatorImplementation).clone();
         
         ISalesAggregator(instance).init(
-            _sellingToken,
-            _token0,
-            _token1,
+            _commonSettings,
             _priceSettings,
-            _endTime,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
             costManager,
-            _msgSender(),
-            liquidityLib
+            _msgSender()
         );
 
         _postProduce(instance);

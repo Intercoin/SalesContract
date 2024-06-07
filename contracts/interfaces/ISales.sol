@@ -5,12 +5,17 @@ import "@intercoin/whitelist/contracts/interfaces/IWhitelist.sol";
 
 interface ISales is ISalesStructs {
     /**
-     * @param _sellingToken address of ITR token
+     * @param _commonSettings CommonSettings data struct
+     *  address sellingToken address of ITR token
+     *  address token0 USD Coin
+     *  address token1 Wrapped token (WETH,WBNB,...)
+     *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+     *  address endTime after this time exchange stop
+     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
      *  uint256 amountRaised raised amount
-     * @param _endTime after this time exchange stop
      * @param _bonusSettings ThresholdBonuses struct's array
      *  uint256 threshold thresholds
      *  uint256 bonus bonuses
@@ -29,9 +34,8 @@ interface ISales is ISalesStructs {
      * @param _costManager costmanager address
      */
      function init(
-        address _sellingToken,
+        CommonSettings memory _commonSettings,
         PriceSettings[] memory _priceSettings,
-        uint64 _endTime,
         ThresholdBonuses[] memory _bonusSettings,
         EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,

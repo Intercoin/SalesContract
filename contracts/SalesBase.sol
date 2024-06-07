@@ -16,7 +16,13 @@ import "@openzeppelin/contracts-upgradeable/utils/introspection/IERC1820Registry
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777RecipientUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeable.sol";
 
+import "@intercoin/liquidity/contracts/interfaces/ILiquidityLib.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
+import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
+import "abdk-libraries-solidity/ABDKMathQuad.sol";
+
 abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, ISalesStructs, IERC777RecipientUpgradeable, IERC777SenderUpgradeable {
+    using ABDKMathQuad for *;
 
     address public sellingToken;
     uint64[] public timestamps;
@@ -36,9 +42,13 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256 public totalIncomeAlreadyClaimed;
 
     uint64 public _endTime;
+    uint64 public _compensationEndTime;
 
     uint256 public totalAmountRaised;
     
+    // true if token0 == uniswapPair.token0()
+    bool internal token00; 
+    address uniswapV2Pair;
     
     uint256 internal constant maxGasPrice = 1*10**18; 
 
@@ -93,6 +103,14 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
 
+    struct Compensation{
+        uint256 nextCounter;
+        uint256[] sent;
+        bytes16 [] price; // ABDKMathQuad value
+        uint256 claimedCounter;
+    }
+    mapping(address => Compensation) compensations;
+
     EnumWithdraw public withdrawOption;
 
     event Exchange(address indexed account, uint256 amountIn, uint256 amountOut);
@@ -114,6 +132,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error MaxGasPriceExceeded();
     error ExchangeTimeIsOver();
     error ExchangeTimeShouldBePassed();
+    error CompensationTimeShouldBePassed();
+    error CompensationTimeExpired();
+    error CompensationNotFound();
     error CantCalculateAmountOfTokens();
 
     modifier validGasPrice() {
@@ -139,15 +160,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     }
 
     function __SalesBase__init(
-        address _sellingToken,
+        CommonSettings memory _commonSettings,
         PriceSettings[] memory _priceSettings,
-        // uint64[] memory _timestamps,
-        // uint256[] memory _prices,
-        // uint256[] memory _amountRaised,
-        uint64 _endTs,
         ThresholdBonuses[] memory _bonusSettings,
-        // uint256[] memory _thresholds,
-        // uint256[] memory _bonuses,
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
         LockedInPrice memory _lockedInPrice,
@@ -163,11 +178,22 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         __Ownable_init();
         __ReentrancyGuard_init();
         
-        if (_sellingToken == address(0)) {
+        if (_commonSettings.sellingToken == address(0)) {
             revert InvalidInput();
         }
         
-        sellingToken = _sellingToken;
+        sellingToken = _commonSettings.sellingToken;
+
+        // setup swap addresses
+        address uniswapRouterFactory;
+        (, uniswapRouterFactory) = ILiquidityLib(_commonSettings.liquidityLib).uniswapSettings();
+        uniswapV2Pair = IUniswapV2Factory(uniswapRouterFactory).getPair(_commonSettings.token0, _commonSettings.token1);
+
+        if (_commonSettings.token0 == IUniswapV2Pair(uniswapV2Pair).token0()) {
+            token00 = true;
+        } else {
+            token00 = false;
+        }
 
         timestamps = new uint64[](_priceSettings.length);
         prices = new uint256[](_priceSettings.length);
@@ -180,7 +206,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // timestamps = _timestamps;
         // prices = _prices;
         // amountRaised = _amountRaised;
-        _endTime = _endTs;
+        _endTime = _commonSettings.endTime;
+        _compensationEndTime = _commonSettings.compensationEndTime;
 
         thresholds = new uint256[](_bonusSettings.length);
         bonuses = new uint256[](_bonusSettings.length);
@@ -313,6 +340,13 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         //     true
         // );
 
+        //compensations
+        Compensation storage compensationData = compensations[sender];
+        compensationData.nextCounter +=1;
+        compensationData.sent.push(totalAmount2Send);
+        compensationData.price.push(getPrice());
+        //----------
+
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
             if (!lockedPrice[sender].exists) {
                 lockedPrice[sender].exists = true;
@@ -337,6 +371,55 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
 
         return totalAmount2Send;
+    }
+
+    function compensation() public {
+        
+        if (_endTime > block.timestamp) {
+            revert CompensationTimeShouldBePassed();
+        }
+        if (_compensationEndTime < block.timestamp) {
+            revert CompensationTimeExpired();        
+        }
+
+        address sender = msg.sender;
+        Compensation storage compensationData = compensations[sender];
+
+        if (compensationData.nextCounter <= compensationData.claimedCounter) {
+            revert CompensationNotFound();
+        }
+
+
+        bytes16 currentPrice = getPrice(); // ABDKMathQuad memory
+        uint256 compensationAmount = 0;
+        for(uint256 i = compensationData.claimedCounter; i < compensationData.nextCounter; ++i) {
+            // compensate =  [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
+
+            if (ABDKMathQuad.toUInt(compensationData.price[i]) < ABDKMathQuad.toUInt(currentPrice)) {
+
+                compensationAmount += (
+                    ABDKMathQuad.toUInt(
+                        ABDKMathQuad.div(
+                            ABDKMathQuad.fromUInt(compensationData.sent[i]), // not more than 1e15 tokens
+                            ABDKMathQuad.div(
+                                compensationData.price[i],
+                                currentPrice
+                            )
+                        )
+                    )
+                );
+            }
+        }
+
+        compensationData.claimedCounter = compensationData.nextCounter;
+
+        if (compensationAmount > 0) {
+            bool success = ERC777Upgradeable(sellingToken).transfer(sender, compensationAmount);
+            if (!success) {
+                revert TransferError();
+            }
+        }
+
     }
     
     /**
@@ -548,6 +631,35 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
     }
+
+    function getPrice() internal view virtual returns(bytes16 price_) {
+        uint112 reserve0;
+        uint112 reserve1;
+        
+        (reserve0, reserve1, ) = IUniswapV2Pair(uniswapV2Pair).getReserves();
+        if (reserve0 == 0 || reserve1 == 0) {
+            // Exclude case when reserves are empty
+        } else {
+            
+            if (token00) {
+                //price_ = FixedPoint.fraction(reserve0,reserve1);
+                price_ = ABDKMathQuad.div(
+                    ABDKMathQuad.fromUInt(reserve0),
+                    ABDKMathQuad.fromUInt(reserve1)
+                );
+            } else {
+                //price_ = FixedPoint.fraction(reserve1,reserve0);
+                price_ = ABDKMathQuad.div(
+                    ABDKMathQuad.fromUInt(reserve1),
+                    ABDKMathQuad.fromUInt(reserve0)
+                );
+            }
+        
+        }
+
+    }
+    
+    
 /*
     struct LockedPrice {
         uint256 price;

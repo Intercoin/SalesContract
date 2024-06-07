@@ -74,12 +74,17 @@ All disputes related to this agreement shall be governed by and interpreted in a
 contract Sales is SalesBase, ISales {
         
     /**
-     * @param _sellingToken address of ITR token
+     * @param _commonSettings CommonSettings data struct
+     *  address sellingToken address of ITR token
+     *  address token0 USD Coin
+     *  address token1 Wrapped token (WETH,WBNB,...)
+     *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+     *  address endTime after this time exchange stop
+     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
      *  uint256 amountRaised raised amount
-     * @param _endTime after this time exchange stop
      * @param _bonusSettings ThresholdBonuses struct's array
      *  uint256 threshold thresholds
      *  uint256 bonus bonuses
@@ -98,9 +103,8 @@ contract Sales is SalesBase, ISales {
      * @param _costManager costmanager address
      */
      function init(
-        address _sellingToken,
+        CommonSettings memory _commonSettings,
         PriceSettings[] memory _priceSettings,
-        uint64 _endTime,
         ThresholdBonuses[] memory _bonusSettings,
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
@@ -114,9 +118,8 @@ contract Sales is SalesBase, ISales {
         initializer
     {
         __SalesBase__init(
-            _sellingToken, 
+            _commonSettings, 
             _priceSettings,
-            _endTime,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,

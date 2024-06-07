@@ -7,6 +7,15 @@ interface ISalesStructs {
         afterEndTime,
         anytime
     }
+
+    struct CommonSettings {
+        address sellingToken;
+        address token0;
+        address token1;
+        address liquidityLib;
+        uint64 endTime;
+        uint64 compensationEndTime;
+    }
     
     struct PriceSettings {
         uint64 timestamp;

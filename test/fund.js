@@ -3,6 +3,10 @@ const hre = require("hardhat");
 const { time, loadFixture } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 require("@nomicfoundation/hardhat-chai-matchers");
 
+const { 
+    getStableCoinsList
+} = require("./helpers/stablecoins.js");
+
 const mixedCall = require('../js/mixedCall.js');
 
 const ZERO = BigInt('0');
@@ -64,6 +68,9 @@ describe("Sales", function () {
         const prices = [100000n, 150000n, 180000n]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
         //prices = [100000000, 150000000, 180000000]; // 1 eth got 1 token and so on
         const lastTime = blockTime+8n*timePeriod;
+
+        const lastTimeForCompensation = blockTime+20n*timePeriod;
+
         const amountRaisedEx = [
             0n, 
             ethers.parseEther('1000000'),//MILLION.mul(ONE_ETH), 
@@ -118,8 +125,8 @@ describe("Sales", function () {
 
         const ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
         await ERC20MintableInstance.waitForDeployment();
-
-        var AggregatorF = await ethers.getContractFactory("Aggregator");    
+        const Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
+        await Token2PayInstance.waitForDeployment();
 
         var SalesFactoryF = await ethers.getContractFactory("SalesFactory");
 
@@ -149,14 +156,10 @@ describe("Sales", function () {
         let salesAggregatorInstance = await SalesAggregatorF.deploy();
         await salesAggregatorInstance.waitForDeployment();
 
-        var libData = await ethers.getContractFactory("@intercoin/liquidity/contracts/LiquidityLib.sol:LiquidityLib");    
-        const liquidityLib = await libData.deploy();
-
         const SalesFactory = await SalesFactoryF.connect(owner).deploy(
             salesInstance.target,
             salesTokenInstance.target,
             salesAggregatorInstance.target,
-            liquidityLib.target,
             NO_COSTMANAGER,
             releaseManager.target
         );
@@ -170,6 +173,22 @@ describe("Sales", function () {
                 "0x53696c766572000000000000000000000000000000000000"//bytes24 factoryChangeNotes;
             ]
         ]
+
+        var libData = await ethers.getContractFactory("@intercoin/liquidity/contracts/LiquidityLib.sol:LiquidityLib");    
+        const liquidityLib = await libData.deploy();
+
+        const chainIdHex = await network.provider.send('eth_chainId');
+        const list = getStableCoinsList(chainIdHex);
+
+        const CommonSettings = [
+            ERC20MintableInstance.target,   // *  address sellingToken address of ITR token
+            list.usdt,                      // *  address token0 USD Coin
+            list.weth,                      // *  address token1 Wrapped token (WETH,WBNB,...)
+            liquidityLib.target,            // *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
+            lastTime,                       // *  address endTime after this time exchange stop
+            lastTimeForCompensation         // *  address endTimeForCompensation after this time receiving compensation tokens will be disabled
+        ];
+
 
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
         return {
@@ -201,10 +220,13 @@ describe("Sales", function () {
             bonuses,
             thresholdBonuses,
             //-------
+            lastTimeForCompensation,
+            CommonSettings,
             //
             SalesFactory,
             ERC20MintableF,
-            ERC20MintableInstance
+            ERC20MintableInstance,
+            Token2PayInstance
         }
     }
 
@@ -227,18 +249,16 @@ describe("Sales", function () {
             enumWithdrawOption,
             dontUseWhitelist,
             dontUseLockedInAmount,
+            CommonSettings,
             SalesFactory,
             ERC20MintableF,
-            ERC20MintableInstance
+            Token2PayInstance
         } = res;
-        
-        var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
         
         let tx = await SalesFactory.connect(owner).produceToken(
             Token2PayInstance.target,
-            ERC20MintableInstance.target,
+            CommonSettings,
             priceSettings,
-            lastTime,
             thresholdBonuses,
             enumWithdrawOption.anytime,
             dontUseWhitelist,
@@ -253,7 +273,6 @@ describe("Sales", function () {
         const SalesTokenInstance = await ethers.getContractAt("SalesTokenMock",instance);   
 
         return {...res, ...{
-            Token2PayInstance,
             SalesTokenInstance
         }};
     }
@@ -281,15 +300,15 @@ describe("Sales", function () {
             enumWithdrawOption,
             dontUseWhitelist,
             dontUseLockedInAmount,
+            CommonSettings,
             SalesFactory,
             ERC20MintableF,
             ERC20MintableInstance
         } = res;
 
         let tx = await SalesFactory.connect(owner).produce(
-            ERC20MintableInstance.target,
+            CommonSettings,
             priceSettings,
-            lastTime,
             thresholdBonuses,
             enumWithdrawOption.anytime,
             dontUseWhitelist,
@@ -300,7 +319,7 @@ describe("Sales", function () {
         const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
         const [instance,] = event.args;
 
-        const SalesInstance = await ethers.getContractAt("Sales",instance);   
+        const SalesInstance = await ethers.getContractAt("SalesMock",instance);   
 
         return {...res, ...{
             SalesInstance
@@ -349,14 +368,14 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseWhitelist,
                 dontUseLockedInAmount,
+                CommonSettings,
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
-                ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettings,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.never, 
                 dontUseWhitelist,
@@ -403,14 +422,14 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseWhitelist,  
                 dontUseLockedInAmount,     
+                CommonSettings,
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
-                ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettings,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.afterEndTime, 
                 dontUseWhitelist,
@@ -459,14 +478,14 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseWhitelist,
                 dontUseLockedInAmount,
+                CommonSettings,
                 SalesFactory,
                 ERC20MintableInstance
             } = await deploy();
 
             let tx = await SalesFactory.connect(owner).produce(
-                ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettings,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 dontUseWhitelist,
@@ -726,14 +745,11 @@ describe("Sales", function () {
                 thresholdBonuses,
                 enumWithdrawOption,
                 dontUseLockedInAmount,
+                CommonSettings,
                 SalesFactory,
-                ERC20MintableF
+                ERC20MintableInstance,
+                Token2PayInstance
             } = await loadFixture(deploy);
-
-            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('token1','token1');
-            await ERC20MintableInstance.waitForDeployment();
-            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
-            await Token2PayInstance.waitForDeployment();
 
             let MockWhitelistF = await ethers.getContractFactory("MockWhitelist");    
             let MockWhitelist = await MockWhitelistF.deploy();
@@ -747,9 +763,9 @@ describe("Sales", function () {
 
             let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.target,
-                ERC20MintableInstance.target,
+                //ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettings,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
@@ -856,15 +872,11 @@ describe("Sales", function () {
                 thresholdBonuses,
                 enumWithdrawOption,
                 dontUseLockedInAmount,
+                CommonSettings,
                 SalesFactory,
-                ERC20MintableF
+                ERC20MintableInstance,
+                Token2PayInstance
             } = await loadFixture(deploy);
-
-            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('token1','token1');
-            await ERC20MintableInstance.waitForDeployment();
-            var Token2PayInstance = await ERC20MintableF.connect(owner).deploy('token2','token2');
-            await Token2PayInstance.waitForDeployment();
-
 
             let MockWhitelistF = await ethers.getContractFactory("MockWhitelist");    
             let MockWhitelist = await MockWhitelistF.deploy();
@@ -878,9 +890,8 @@ describe("Sales", function () {
             
             let tx = await SalesFactory.connect(owner).produceToken(
                 Token2PayInstance.target,
-                ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettings,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
@@ -932,6 +943,7 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseWhitelist,
                 dontUseLockedInAmount,
+                CommonSettings,
                 SalesFactory,
                 ERC20MintableF
             } = await loadFixture(deploy);
@@ -949,12 +961,9 @@ describe("Sales", function () {
             priceSettingsCustom[1][2] = amountRaisedCustom[1];
             priceSettingsCustom[2][2] = amountRaisedCustom[2];
 
-            var ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-
             let tx = await SalesFactory.connect(owner).produce(
-                ERC20MintableInstance.target,
+                CommonSettings,
                 priceSettingsCustom,
-                lastTime,
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 dontUseWhitelist,
@@ -1042,6 +1051,98 @@ describe("Sales", function () {
             expect(accountOneBalanceMiddle).to.be.eq(base+(base*(10n)/(100n)));
             expect(accountOneBalanceAfter).to.be.eq(base+(base*(20n)/(100n)));
         });
+
+        it('test compensations', async () => {
+
+            const {
+                owner,
+                accountTwo,
+                trustedForwarder,
+                lastTime,
+                lastTimeForCompensation,
+                ERC20MintableInstance,
+                SalesInstance
+            } = await loadFixture(deploySalesInstance);
+
+            if (trustedForwardMode) {
+                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = BigInt(tmp.timestamp);
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+
+            var prices=[3000n,5500n,4000n];
+            var sent=[];
+            const endPrice = 5000n;
+            var ratio_ETH_ITR, accountTwoBalanceBefore, accountTwoBalanceActual;
+
+            //make iterations:
+            for (var i=0; i < prices.length; ++i) {
+
+                await SalesInstance.connect(owner).setPrice(prices[i],1); // imitate uniswap price usdt/bnb 
+
+                ratio_ETH_ITR = await SalesInstance.getTokenPrice();
+                accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContract
+                });
+                accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+                sent[i] = amountETHSendToContract * ethDenom / ratio_ETH_ITR;
+
+                expect(
+                    accountTwoBalanceActual
+                ).to.be.eq(
+                    accountTwoBalanceBefore + sent[i]
+                );
+            }
+
+            // run compensation
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeShouldBePassed');
+
+            // go to end time
+            await time.increase(lastTime-currentBlockTime);
+            
+            //set Price
+            await SalesInstance.connect(owner).setPrice(endPrice,1);
+
+            var expectedCompensationAmount = 0n;
+
+            for (var i=0; i < prices.length; ++i) {
+                if (endPrice > prices[i]) {
+                    expectedCompensationAmount += endPrice * sent[i] / prices[i];
+                }
+            }
+
+            accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            await SalesInstance.connect(accountTwo).compensation();
+            accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+            expect(
+                accountTwoBalanceActual
+            ).to.be.eq(
+                accountTwoBalanceBefore + expectedCompensationAmount
+            );
+
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationNotFound');
+
+            // go to compensation end time
+            await time.increase(lastTimeForCompensation - lastTime);
+
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeExpired');
+
+        });
+
         describe("test locked in Price", function () {
             it('shouldn\'t be locked up', async () => {
                 
@@ -1058,14 +1159,14 @@ describe("Sales", function () {
                     thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    CommonSettings,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1129,14 +1230,14 @@ describe("Sales", function () {
                     thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    CommonSettings,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1212,14 +1313,14 @@ describe("Sales", function () {
                     thresholdBonuses,
                     enumWithdrawOption,
                     dontUseWhitelist,
+                    CommonSettings,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1300,8 +1401,9 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
+                    CommonSettings,
                     SalesFactory,
-                    ERC20MintableF
+                    ERC20MintableInstance
                 } = res;
 
                 // Example:
@@ -1312,31 +1414,14 @@ describe("Sales", function () {
                 //      accountNine  - 20%;
                 //      accountEleven- 10%;    
 
-                const ERC20MintableInstance = await ERC20MintableF.connect(owner).deploy('t1','t1');
-
                 let tmp;
                 tmp = await ethers.provider.send("eth_blockNumber",[]);
                 tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
                 const currentBlockTime = BigInt(tmp.timestamp);
 
                 let tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
-                    // timestamps,
-                    // prices, //prices = [100000, 150000, 180000]; // (0.0010/0.0015/0.0018)  mul by 1e8. 0.001 means that for 1 eth got 1000 tokens    //_00000000
-                    // amountRaisedEx,
+                    CommonSettings,
                     priceSettings,
-                    //---
-                    lastTime,
-                    // [
-                    //     10000n*ONE_ETH, // TEN.mul(THOUSAND).mul(ONE_ETH), 
-                    //     100000n*ONE_ETH, // HUNDRED.mul(THOUSAND).mul(ONE_ETH), 
-                    //     1000000n*ONE_ETH, // THOUSAND.mul(THOUSAND).mul(ONE_ETH)
-                    // ],
-                    // [
-                    //     0n, // ZERO,
-                    //     0n, // ZERO,
-                    //     50n// TEN.mul(FIVE)
-                    // ],
                     [
                         [10000n*ONE_ETH, 0n],
                         [100000n*ONE_ETH, 0n],
@@ -1611,14 +1696,13 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
-                    ERC20MintableInstance,
+                    CommonSettings,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1648,14 +1732,13 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
-                    ERC20MintableInstance,
+                    CommonSettings,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.anytime,
                     dontUseWhitelist,
@@ -1686,14 +1769,13 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
-                    ERC20MintableInstance,
+                    CommonSettings,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    CommonSettings,
                     priceSettings,
-                    lastTime,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1723,15 +1805,17 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
-                    ERC20MintableInstance,
+                    CommonSettings,
                     SalesFactory
                 } = await loadFixture(deploy);
 
                 timestamps[1] = 0n;
+                var editedCommonSettings = [...CommonSettings];
+                editedCommonSettings[4] = lastTime+10n*24n*60n*60n;//lastTime+10n*24n*60n*60n,
+                
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    editedCommonSettings,
                     priceSettings,
-                    lastTime+10n*24n*60n*60n,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1760,14 +1844,17 @@ describe("Sales", function () {
                     enumWithdrawOption,
                     dontUseWhitelist,
                     dontUseLockedInAmount,
+                    CommonSettings,
                     ERC20MintableInstance,
                     SalesFactory
                 } = await loadFixture(deploy);
                 
+                var editedCommonSettings = [...CommonSettings];
+                editedCommonSettings[4] = lastTime+10n*24n*60n*60n;//lastTime+10n*24n*60n*60n,
+
                 const tx = await SalesFactory.connect(owner).produce(
-                    ERC20MintableInstance.target,
+                    editedCommonSettings,
                     priceSettings,
-                    lastTime+10n*24n*60n*60n,
                     thresholdBonuses,
                     enumWithdrawOption.never,
                     dontUseWhitelist,
@@ -1814,16 +1901,20 @@ describe("Sales", function () {
                         enumWithdrawOption,
                         dontUseWhitelist,
                         dontUseLockedInAmount,
+                        CommonSettings,
                         SalesFactory
                     } = res;
 
                     var ERC20MintableBurnableF = await ethers.getContractFactory("ERC20MintableBurnable");    
                     const ERC20MintableBurnable = await ERC20MintableBurnableF.connect(owner).deploy('t1','t1');
 
+                    var editedCommonSettings = [...CommonSettings];
+                    editedCommonSettings[0] = ERC20MintableBurnable.target;
+                    editedCommonSettings[4] = lastTime+10n*24n*60n*60n;//lastTime+10n*24n*60n*60n,
+
                     let tx = await SalesFactory.connect(owner).produce(
-                        ERC20MintableBurnable.target,
+                        editedCommonSettings,
                         priceSettings,
-                        lastTime+10n*24n*60n*60n,
                         thresholdBonuses,
                         enumWithdrawOption.never,
                         dontUseWhitelist,
