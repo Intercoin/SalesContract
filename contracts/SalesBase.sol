@@ -42,7 +42,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256 public totalIncomeAlreadyClaimed;
 
     uint64 public _endTime;
-    uint64 public _endTimeForCompensation;
+    uint64 public _compensationEndTime;
 
     uint256 public totalAmountRaised;
     
@@ -204,7 +204,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // prices = _prices;
         // amountRaised = _amountRaised;
         _endTime = _commonSettings.endTime;
-        _endTimeForCompensation = _commonSettings.endTimeForCompensation;
+        _compensationEndTime = _commonSettings.compensationEndTime;
 
         thresholds = new uint256[](_bonusSettings.length);
         bonuses = new uint256[](_bonusSettings.length);
@@ -377,7 +377,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         Compensation storage compensationData = compensations[sender];
         require(
             _endTime < block.timestamp && 
-            _endTimeForCompensation > block.timestamp
+            _compensationEndTime > block.timestamp
         );
         require(compensationData.counter > compensationData.claimedCounter);
         
