@@ -19,10 +19,10 @@ import "@openzeppelin/contracts-upgradeable/token/ERC777/IERC777SenderUpgradeabl
 import "@intercoin/liquidity/contracts/interfaces/ILiquidityLib.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
-import "./libs/FixedPoint.sol";
+import "abdk-libraries-solidity/ABDKMathQuad.sol";
 
 abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Support, ReentrancyGuardUpgradeable, Whitelist, IPresale, ISalesStructs, IERC777RecipientUpgradeable, IERC777SenderUpgradeable {
-    using FixedPoint for *;
+    using ABDKMathQuad for *;
 
     address public sellingToken;
     uint64[] public timestamps;
@@ -104,9 +104,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256[] bonuses;// percents mul by 100
 
     struct Compensation{
-        uint256 counter;
+        uint256 nextCounter;
         uint256[] sent;
-        FixedPoint.uq112x112[] price; // FixedPoint value
+        bytes16 [] price; // ABDKMathQuad value
         uint256 claimedCounter;
     }
     mapping(address => Compensation) compensations;
@@ -132,6 +132,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error MaxGasPriceExceeded();
     error ExchangeTimeIsOver();
     error ExchangeTimeShouldBePassed();
+    error CompensationTimeShouldBePassed();
+    error CompensationTimeExpired();
+    error CompensationNotFound();
     error CantCalculateAmountOfTokens();
 
     modifier validGasPrice() {
@@ -339,8 +342,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         //compensations
         Compensation storage compensationData = compensations[sender];
-        uint256 index = compensationData.counter;
-        compensationData.counter +=1;
+        compensationData.nextCounter +=1;
         compensationData.sent.push(totalAmount2Send);
         compensationData.price.push(getPrice());
         //----------
@@ -372,34 +374,44 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     }
 
     function compensation() public {
-        address sender = msg.sender;
-
-        Compensation storage compensationData = compensations[sender];
-        require(
-            _endTime < block.timestamp && 
-            _compensationEndTime > block.timestamp
-        );
-        require(compensationData.counter > compensationData.claimedCounter);
         
-        FixedPoint.uq112x112 memory currentPrice = getPrice();
+        if (_endTime > block.timestamp) {
+            revert CompensationTimeShouldBePassed();
+        }
+        if (_compensationEndTime < block.timestamp) {
+            revert CompensationTimeExpired();        
+        }
+
+        address sender = msg.sender;
+        Compensation storage compensationData = compensations[sender];
+
+        if (compensationData.nextCounter <= compensationData.claimedCounter) {
+            revert CompensationNotFound();
+        }
+
+
+        bytes16 currentPrice = getPrice(); // ABDKMathQuad memory
         uint256 compensationAmount = 0;
-        for(uint256 i = compensationData.claimedCounter+1; i <= compensationData.counter; ++i) {
+        for(uint256 i = compensationData.claimedCounter; i < compensationData.nextCounter; ++i) {
             // compensate =  [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
-            // it can be lossy than use sent tokens more that 1e15 (uint112)
-            if (compensationData.price[i]._x < currentPrice._x) {
+
+            if (ABDKMathQuad.toUInt(compensationData.price[i]) < ABDKMathQuad.toUInt(currentPrice)) {
+
                 compensationAmount += (
-                    FixedPoint.divuq(
-                        FixedPoint.encode(uint112(compensationData.sent[i])), // not more than 1e15 tokens
-                        FixedPoint.divuq(
-                            compensationData.price[i],
-                            currentPrice
+                    ABDKMathQuad.toUInt(
+                        ABDKMathQuad.div(
+                            ABDKMathQuad.fromUInt(compensationData.sent[i]), // not more than 1e15 tokens
+                            ABDKMathQuad.div(
+                                compensationData.price[i],
+                                currentPrice
+                            )
                         )
-                    ).decode()
+                    )
                 );
             }
         }
 
-        compensationData.claimedCounter = compensationData.counter;
+        compensationData.claimedCounter = compensationData.nextCounter;
 
         if (compensationAmount > 0) {
             bool success = ERC777Upgradeable(sellingToken).transfer(sender, compensationAmount);
@@ -409,13 +421,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
 
     }
-// struct Compensation{
-//     uint256 counter;
-//     uint256[] sent;
-//     FixedPoint.uq112x112[] price; // FixedPoint value
-//     uint256 claimedCounter;
-// }
-// mapping(address => Compensation) compensations;
     
     /**
      * withdraw some tokens to address
@@ -627,7 +632,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         
     }
 
-    function getPrice() internal view returns(FixedPoint.uq112x112 memory price_) {
+    function getPrice() internal view virtual returns(bytes16 price_) {
         uint112 reserve0;
         uint112 reserve1;
         
@@ -637,9 +642,17 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         } else {
             
             if (token00) {
-                price_ = FixedPoint.fraction(reserve0,reserve1);
+                //price_ = FixedPoint.fraction(reserve0,reserve1);
+                price_ = ABDKMathQuad.div(
+                    ABDKMathQuad.fromUInt(reserve0),
+                    ABDKMathQuad.fromUInt(reserve1)
+                );
             } else {
-                price_ = FixedPoint.fraction(reserve1,reserve0);
+                //price_ = FixedPoint.fraction(reserve1,reserve0);
+                price_ = ABDKMathQuad.div(
+                    ABDKMathQuad.fromUInt(reserve1),
+                    ABDKMathQuad.fromUInt(reserve0)
+                );
             }
         
         }

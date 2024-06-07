@@ -319,7 +319,7 @@ describe("Sales", function () {
         const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
         const [instance,] = event.args;
 
-        const SalesInstance = await ethers.getContractAt("Sales",instance);   
+        const SalesInstance = await ethers.getContractAt("SalesMock",instance);   
 
         return {...res, ...{
             SalesInstance
@@ -1051,6 +1051,98 @@ describe("Sales", function () {
             expect(accountOneBalanceMiddle).to.be.eq(base+(base*(10n)/(100n)));
             expect(accountOneBalanceAfter).to.be.eq(base+(base*(20n)/(100n)));
         });
+
+        it('test compensations', async () => {
+
+            const {
+                owner,
+                accountTwo,
+                trustedForwarder,
+                lastTime,
+                lastTimeForCompensation,
+                ERC20MintableInstance,
+                SalesInstance
+            } = await loadFixture(deploySalesInstance);
+
+            if (trustedForwardMode) {
+                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            let tmp = await ethers.provider.send("eth_blockNumber",[]);
+            tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
+            let currentBlockTime = BigInt(tmp.timestamp);
+            await ERC20MintableInstance.connect(owner).mint(SalesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+
+            var prices=[3000n,5500n,4000n];
+            var sent=[];
+            const endPrice = 5000n;
+            var ratio_ETH_ITR, accountTwoBalanceBefore, accountTwoBalanceActual;
+
+            //make iterations:
+            for (var i=0; i < prices.length; ++i) {
+
+                await SalesInstance.connect(owner).setPrice(prices[i],1); // imitate uniswap price usdt/bnb 
+
+                ratio_ETH_ITR = await SalesInstance.getTokenPrice();
+                accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+                // send ETH to Contract
+                await accountTwo.sendTransaction({
+                    to: SalesInstance.target, 
+                    value: amountETHSendToContract
+                });
+                accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+                sent[i] = amountETHSendToContract * ethDenom / ratio_ETH_ITR;
+
+                expect(
+                    accountTwoBalanceActual
+                ).to.be.eq(
+                    accountTwoBalanceBefore + sent[i]
+                );
+            }
+
+            // run compensation
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeShouldBePassed');
+
+            // go to end time
+            await time.increase(lastTime-currentBlockTime);
+            
+            //set Price
+            await SalesInstance.connect(owner).setPrice(endPrice,1);
+
+            var expectedCompensationAmount = 0n;
+
+            for (var i=0; i < prices.length; ++i) {
+                if (endPrice > prices[i]) {
+                    expectedCompensationAmount += endPrice * sent[i] / prices[i];
+                }
+            }
+
+            accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            await SalesInstance.connect(accountTwo).compensation();
+            accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+            expect(
+                accountTwoBalanceActual
+            ).to.be.eq(
+                accountTwoBalanceBefore + expectedCompensationAmount
+            );
+
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationNotFound');
+
+            // go to compensation end time
+            await time.increase(lastTimeForCompensation - lastTime);
+
+            await expect(
+                SalesInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeExpired');
+
+        });
+
         describe("test locked in Price", function () {
             it('shouldn\'t be locked up', async () => {
                 

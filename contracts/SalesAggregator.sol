@@ -55,7 +55,7 @@ ARBITRATION
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
 contract SalesAggregator is SalesBase, ISalesAggregator {
-    using FixedPoint for *;
+    using ABDKMathQuad for *;
     
     uint256 price;
     
@@ -151,7 +151,14 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
     
     function getUSDFromETH(uint256 amount) internal view returns(uint256 convertedAmount) {
         
-        convertedAmount = 1e2*(getPrice().mul(amount)).decode144();
+        //convertedAmount = 1e2*(getPrice().mul(amount)).decode144();
+
+        convertedAmount = ABDKMathQuad.toUInt(
+            ABDKMathQuad.mul(
+                getPrice(),
+                ABDKMathQuad.fromUInt(amount*1e2)
+            )
+        );
         
     }
    
