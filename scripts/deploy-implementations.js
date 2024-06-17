@@ -44,13 +44,33 @@ async function main() {
     }
 	//----------------
 
-	const [deployer] = await ethers.getSigners();
-	
+	//const [deployer, depl_auxiliary, deployer_FactoryDeployer] = await ethers.getSigners();
+
+	var depl_local,
+        depl_auxiliary,
+        depl_releasemanager,
+		depl_sales;
+
+    var signers = await ethers.getSigners();
+    if (signers.length == 1) {
+        depl_local = signers[0];
+        depl_auxiliary = signers[0];
+        depl_releasemanager = signers[0];
+		depl_sales = signers[0];
+    } else {
+        [
+            depl_local,
+            depl_auxiliary,
+            depl_releasemanager,
+			depl_sales
+        ] = signers;
+    }
+
 	const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
     const RELEASE_MANAGER = hre.network.name == 'mumbai'? process.env.RELEASE_MANAGER_MUMBAI : process.env.RELEASE_MANAGER;
 	console.log(
 		"Deploying contracts with the account:",
-		deployer.address
+		depl_auxiliary.address
 	);
 
 	// var options = {
@@ -59,16 +79,16 @@ async function main() {
 	// };
 
 	
-    const deployerBalanceBefore = await ethers.provider.getBalance(deployer.address);
+    const deployerBalanceBefore = await ethers.provider.getBalance(depl_auxiliary.address);
     console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const FundContractF = await ethers.getContractFactory("Sales");
 	const FundContractAggregatorF = await ethers.getContractFactory("SalesAggregator");
     const FundContractTokenF = await ethers.getContractFactory("SalesToken");
 	    
-	let implementationFundContract          = await FundContractF.connect(deployer).deploy();
-    let implementationFundContractAggregator= await FundContractAggregatorF.connect(deployer).deploy();
-    let implementationFundContractToken     = await FundContractTokenF.connect(deployer).deploy();
+	let implementationFundContract          = await FundContractF.connect(depl_auxiliary).deploy();
+    let implementationFundContractAggregator= await FundContractAggregatorF.connect(depl_auxiliary).deploy();
+    let implementationFundContractToken     = await FundContractTokenF.connect(depl_auxiliary).deploy();
 	await implementationFundContract.waitForDeployment();
     await implementationFundContractAggregator.waitForDeployment();
     await implementationFundContractToken.waitForDeployment();
@@ -88,7 +108,7 @@ async function main() {
     data_object.liquidityLib                        = liquidityLib;
     data_object.releaseManager	                    = RELEASE_MANAGER;
 
-	const deployerBalanceAfter = await ethers.provider.getBalance(deployer.address);
+	const deployerBalanceAfter = await ethers.provider.getBalance(depl_auxiliary.address);
 	console.log("Spent:", ethers.formatUnits(deployerBalanceBefore - deployerBalanceAfter), 18);
 	console.log("gasPrice:", ethers.formatUnits((await network.provider.send("eth_gasPrice")), "gwei")," gwei");
 
