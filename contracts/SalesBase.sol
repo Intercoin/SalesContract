@@ -172,8 +172,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         onlyInitializing
     {
         
-        __CostManagerHelper_init(_msgSender());
-        _setCostManager(_costManager);
+        __CostManagerHelper_init(_msgSender(), _costManager);
 
         __Ownable_init();
         __ReentrancyGuard_init();

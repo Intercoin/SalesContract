@@ -15,6 +15,12 @@ function getStableCoinsList(chainId) {
                 weth: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c" // wbnb in this case
             }
             break;
+        case 137: //Polygon MainNet
+            return {
+                usdt: "0xc2132d05d31c914a87c6611c10748aeb04b58e8f",
+                weth: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270" // wbnb in this case
+            }
+            break;
         case 'Papayas':
         default:
             throw "unsupported chain= '"+chainId+"'";

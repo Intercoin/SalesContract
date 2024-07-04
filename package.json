@@ -14,23 +14,25 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Intercoin/FundContract.git"
+    "url": "git+https://github.com/Intercoin/SalesContract.git"
   },
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/Intercoin/FundContract/issues"
+    "url": "https://github.com/Intercoin/SalesContract/issues"
   },
-  "homepage": "https://github.com/Intercoin/FundContract#readme",
+  "homepage": "https://github.com/Intercoin/SalesContract#readme",
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
-    "dotenv": "^16.4.1"
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat-contract-sizer": "^2.10.0",
+    "solidity-coverage": "^0.8.12"
   },
   "dependencies": {
     "@intercoin/community": "^1.2.0",
     "@intercoin/liquidity": "^1.0.0",
     "@intercoin/minimums": "^0.0.1-beta",
-    "@intercoin/releasemanager": "^2.0.0",
+    "@intercoin/releasemanager": "^2.2.0",
     "@intercoin/trustedforwarder": "^1.0.1",
     "@intercoin/whitelist": "^1.0.7",
     "@openzeppelin/contracts": "^4.7.3",
