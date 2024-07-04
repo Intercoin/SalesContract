@@ -37,11 +37,11 @@ module.exports = {
       allowUnlimitedContractSize: false,
       gasPrice: "auto",
       gasLimit: 22000000,
-      chainId: 0x38,  // sync with url or getting uniswap settings will reject transactions
+      chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
       forking: {
         //url: mainnetURL
-        //url: maticURL
-        url: bscURL
+        url: maticURL
+        //url: bscURL
       }
     },
     kovan: {
@@ -79,7 +79,7 @@ module.exports = {
     },
     polygon: {
       url: maticURL,
-      chainId: 137,
+      chainId: 0x89,
       //gasPrice: "auto",
       accounts: [
         process.env.private_key,
