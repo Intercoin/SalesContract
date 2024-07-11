@@ -37,33 +37,14 @@ module.exports = {
       allowUnlimitedContractSize: false,
       gasPrice: "auto",
       gasLimit: 22000000,
-      chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
-      forking: {
-        //url: mainnetURL
-        url: maticURL
-        //url: bscURL
-      }
-    },
-    kovan: {
-      url: kovanURL,
-      chainId: 42,
-      gas: 12000000,
-      accounts: [process.env.private_key],
-      saveDeployments: true
-    },
-    goerli: {
-      url: goerliURL,
-      chainId: 5,
-      gasPrice: 1000,
-      accounts: [process.env.private_key],
-      saveDeployments: true
-    },
-    rinkeby: {
-      url: rinkebyURL,
-      chainId: 4,
-      gasPrice: "auto",
-      accounts: [process.env.private_key],
-      saveDeployments: true
+      //[maticURL]
+      // chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
+      // forking: {url: maticURL}
+      //[mainnetURL]
+      chainId: 0x1,
+      forking: {url: mainnetURL}
+      //url: bscURL
+      
     },
     bsc: {
       url: bscURL,
@@ -105,8 +86,13 @@ module.exports = {
     mainnet: {
       url: mainnetURL,
       chainId: 1,
-      gasPrice: 20000000000,
-      accounts: [process.env.private_key],
+      gasPrice: 3_000000000, // 3 gwei
+      accounts: [
+        process.env.private_key,
+        process.env.private_key_auxiliary,
+        process.env.private_key_releasemanager,
+        process.env.private_key_sales
+      ],
       saveDeployments: true
     }
   },
