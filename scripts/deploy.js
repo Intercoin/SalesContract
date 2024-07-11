@@ -126,6 +126,18 @@ async function main() {
     await txNewRelease.wait(3);
     console.log('newRelease - mined');
 	console.log('this.factory = ', this.factory.target);
+
+	const networkName = hre.network.name;
+    if (networkName == 'hardhat') {
+        console.log("skipping verifying for  'hardhat' network");
+    } else {
+        console.log("Starting verifying:");
+
+        await hre.run("verify:verify", {
+			address: this.factory.target,
+			constructorArguments: _params
+		});
+    }
 }
 
 main()

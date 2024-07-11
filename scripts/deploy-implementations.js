@@ -120,6 +120,17 @@ async function main() {
     let data_to_write = JSON.stringify(data_object_root, null, 2);
 	console.log(data_to_write);
     await write_data(data_to_write);
+
+    const networkName = hre.network.name;
+    if (networkName == 'hardhat') {
+        console.log("skipping verifying for  'hardhat' network");
+    } else {
+        console.log("Starting verifying:");
+
+        await hre.run("verify:verify", {address: implementationFundContract.target});
+        await hre.run("verify:verify", {address: implementationFundContractAggregator.target});
+        await hre.run("verify:verify", {address: implementationFundContractToken.target});
+    }
 }
 
 main()
