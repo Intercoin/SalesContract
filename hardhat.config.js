@@ -110,6 +110,7 @@ module.exports = {
     apiKey: {
       polygon: process.env.MATIC_API_KEY,
       bsc: process.env.BSCSCAN_API_KEY,
+      mainnet: process.env.ETHERSCAN_API_KEY
     }
     //apiKey: process.env.MATIC_API_KEY
     //apiKey: process.env.BSCSCAN_API_KEY
