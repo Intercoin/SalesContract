@@ -186,8 +186,12 @@ describe("Sales", function () {
             list.weth,                      // *  address token1 Wrapped token (WETH,WBNB,...)
             liquidityLib.target,            // *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
             lastTime,                       // *  address endTime after this time exchange stop
-            lastTimeForCompensation         // *  address endTimeForCompensation after this time receiving compensation tokens will be disabled
+            
         ];
+
+        const CompensationSettings = [
+            lastTimeForCompensation         // *  address endTimeForCompensation after this time receiving compensation tokens will be disabled
+        ]
 
 
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
@@ -222,6 +226,7 @@ describe("Sales", function () {
             //-------
             lastTimeForCompensation,
             CommonSettings,
+            CompensationSettings,
             //
             SalesFactory,
             ERC20MintableF,
@@ -250,6 +255,7 @@ describe("Sales", function () {
             dontUseWhitelist,
             dontUseLockedInAmount,
             CommonSettings,
+            CompensationSettings,
             SalesFactory,
             ERC20MintableF,
             Token2PayInstance
@@ -262,7 +268,8 @@ describe("Sales", function () {
             thresholdBonuses,
             enumWithdrawOption.anytime,
             dontUseWhitelist,
-            dontUseLockedInAmount
+            dontUseLockedInAmount,
+            CompensationSettings
         );
 
         const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -746,6 +753,7 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseLockedInAmount,
                 CommonSettings,
+                CompensationSettings,
                 SalesFactory,
                 ERC20MintableInstance,
                 Token2PayInstance
@@ -769,7 +777,8 @@ describe("Sales", function () {
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
-                dontUseLockedInAmount
+                dontUseLockedInAmount,
+                CompensationSettings
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -873,6 +882,7 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseLockedInAmount,
                 CommonSettings,
+                CompensationSettings,
                 SalesFactory,
                 ERC20MintableInstance,
                 Token2PayInstance
@@ -895,7 +905,8 @@ describe("Sales", function () {
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
-                dontUseLockedInAmount
+                dontUseLockedInAmount,
+                CompensationSettings
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed

@@ -42,7 +42,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256 public totalIncomeAlreadyClaimed;
 
     uint64 public _endTime;
-    uint64 public _compensationEndTime;
 
     uint256 public totalAmountRaised;
     
@@ -103,13 +102,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint256[] thresholds; // count in ETH
     uint256[] bonuses;// percents mul by 100
 
-    struct Compensation{
-        uint256 nextCounter;
-        uint256[] sent;
-        bytes16 [] price; // ABDKMathQuad value
-        uint256 claimedCounter;
-    }
-    mapping(address => Compensation) compensations;
 
     EnumWithdraw public withdrawOption;
 
@@ -132,9 +124,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error MaxGasPriceExceeded();
     error ExchangeTimeIsOver();
     error ExchangeTimeShouldBePassed();
-    error CompensationTimeShouldBePassed();
-    error CompensationTimeExpired();
-    error CompensationNotFound();
     error CantCalculateAmountOfTokens();
 
     modifier validGasPrice() {
@@ -206,7 +195,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // prices = _prices;
         // amountRaised = _amountRaised;
         _endTime = _commonSettings.endTime;
-        _compensationEndTime = _commonSettings.compensationEndTime;
 
         thresholds = new uint256[](_bonusSettings.length);
         bonuses = new uint256[](_bonusSettings.length);
@@ -340,10 +328,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // );
 
         //compensations
-        Compensation storage compensationData = compensations[sender];
-        compensationData.nextCounter +=1;
-        compensationData.sent.push(totalAmount2Send);
-        compensationData.price.push(getPrice());
+        _exchangeAdditional(sender, totalAmount2Send);
         //----------
 
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
@@ -372,54 +357,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         return totalAmount2Send;
     }
 
-    function compensation() public {
-        
-        if (_endTime > block.timestamp) {
-            revert CompensationTimeShouldBePassed();
-        }
-        if (_compensationEndTime < block.timestamp) {
-            revert CompensationTimeExpired();        
-        }
+    function _exchangeAdditional(address sender, uint256 amount) internal virtual  {}
 
-        address sender = msg.sender;
-        Compensation storage compensationData = compensations[sender];
-
-        if (compensationData.nextCounter <= compensationData.claimedCounter) {
-            revert CompensationNotFound();
-        }
-
-
-        bytes16 currentPrice = getPrice(); // ABDKMathQuad memory
-        uint256 compensationAmount = 0;
-        for(uint256 i = compensationData.claimedCounter; i < compensationData.nextCounter; ++i) {
-            // compensate =  [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
-
-            if (ABDKMathQuad.toUInt(compensationData.price[i]) < ABDKMathQuad.toUInt(currentPrice)) {
-
-                compensationAmount += (
-                    ABDKMathQuad.toUInt(
-                        ABDKMathQuad.div(
-                            ABDKMathQuad.fromUInt(compensationData.sent[i]), // not more than 1e15 tokens
-                            ABDKMathQuad.div(
-                                compensationData.price[i],
-                                currentPrice
-                            )
-                        )
-                    )
-                );
-            }
-        }
-
-        compensationData.claimedCounter = compensationData.nextCounter;
-
-        if (compensationAmount > 0) {
-            bool success = ERC777Upgradeable(sellingToken).transfer(sender, compensationAmount);
-            if (!success) {
-                revert TransferError();
-            }
-        }
-
-    }
     
     /**
      * withdraw some tokens to address

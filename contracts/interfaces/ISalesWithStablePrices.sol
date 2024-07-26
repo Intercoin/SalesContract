@@ -31,7 +31,10 @@ interface ISalesWithStablePrices is ISalesStructs {
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      * @param _costManager costmanager address
+     * @param _producedBy used to store which address will create instance. msg.sender is a factory
      */
      function init(
         CommonSettings memory _commonSettings,
@@ -40,6 +43,7 @@ interface ISalesWithStablePrices is ISalesStructs {
         EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
         LockedInPrice memory _lockedInPrice,
+        CompensationSettings memory _compensationSettings,
         address _costManager,
         address _producedBy
     ) external;

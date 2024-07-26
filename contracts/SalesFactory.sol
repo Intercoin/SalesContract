@@ -128,7 +128,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -186,7 +185,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -205,6 +203,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      */
     function produceSalesForToken(
         address _payToken,
@@ -213,7 +213,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
-        ISalesStructs.LockedInPrice memory _lockedInPrice
+        ISalesStructs.LockedInPrice memory _lockedInPrice,
+        ISalesStructs.CompensationSettings memory _compensationSettings
     ) 
         public 
         nonReentrant
@@ -229,6 +230,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
+            _compensationSettings,
             costManager,
             _msgSender()
         );
@@ -245,8 +247,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token0 USD Coin
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
-     *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
+     *  address endTime after this time exchange stop     
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -265,6 +266,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      */
     function produceWithStablePrices(
         ISalesStructs.CommonSettings memory _commonSettings,
@@ -272,7 +275,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
-        ISalesStructs.LockedInPrice memory _lockedInPrice
+        ISalesStructs.LockedInPrice memory _lockedInPrice,
+        ISalesStructs.CompensationSettings memory _compensationSettings
     ) 
         public 
         nonReentrant
@@ -287,6 +291,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
+            _compensationSettings,
             costManager,
             _msgSender()
         );

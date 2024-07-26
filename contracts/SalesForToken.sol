@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
 import "./interfaces/ISalesForToken.sol";
-import "./SalesBase.sol";
+import "./SalesBaseWithCompensation.sol";
 /**
 *****************
 TEMPLATE CONTRACT
@@ -71,7 +71,7 @@ ARBITRATION
 
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract SalesForToken is SalesBase, ISalesForToken {
+contract SalesForToken is SalesBaseWithCompensation, ISalesForToken {
     address internal payToken;
     
     /**
@@ -90,7 +90,6 @@ contract SalesForToken is SalesBase, ISalesForToken {
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -110,7 +109,10 @@ contract SalesForToken is SalesBase, ISalesForToken {
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      * @param _costManager costmanager address
+     * @param _producedBy used to store which address will create instance. msg.sender is a factory
      */
      function init(
         address _payToken,
@@ -120,6 +122,7 @@ contract SalesForToken is SalesBase, ISalesForToken {
         EnumWithdraw _ownerCanWithdraw,
         WhitelistStruct memory _whitelistData,
         LockedInPrice memory _lockedInPrice,
+        CompensationSettings memory _compensationSettings,
         address _costManager,
         address _producedBy
     ) 
@@ -127,13 +130,14 @@ contract SalesForToken is SalesBase, ISalesForToken {
         initializer
         override
     {
-        __SalesBase__init(
+        __SalesBaseWithCompensation__init(
             _commonSettings, 
             _priceSettings,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
+            _compensationSettings,
             _costManager
         );
 
