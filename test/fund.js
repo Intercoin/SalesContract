@@ -119,7 +119,7 @@ describe("Sales", function () {
 
         var SalesMockF = await ethers.getContractFactory("SalesMock");    
         var SalesTokenF = await ethers.getContractFactory("SalesTokenMock");
-        var SalesAggregatorF = await ethers.getContractFactory("SalesAggregator");
+        var SalesAggregatorF = await ethers.getContractFactory("SalesWithStablePrices");
 
         const ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
 
@@ -186,8 +186,12 @@ describe("Sales", function () {
             list.weth,                      // *  address token1 Wrapped token (WETH,WBNB,...)
             liquidityLib.target,            // *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
             lastTime,                       // *  address endTime after this time exchange stop
-            lastTimeForCompensation         // *  address endTimeForCompensation after this time receiving compensation tokens will be disabled
+            
         ];
+
+        const CompensationSettings = [
+            lastTimeForCompensation         // *  address endTimeForCompensation after this time receiving compensation tokens will be disabled
+        ]
 
 
         await releaseManager.connect(owner).newRelease(factoriesList, factoryInfo);
@@ -222,6 +226,7 @@ describe("Sales", function () {
             //-------
             lastTimeForCompensation,
             CommonSettings,
+            CompensationSettings,
             //
             SalesFactory,
             ERC20MintableF,
@@ -250,19 +255,21 @@ describe("Sales", function () {
             dontUseWhitelist,
             dontUseLockedInAmount,
             CommonSettings,
+            CompensationSettings,
             SalesFactory,
             ERC20MintableF,
             Token2PayInstance
         } = res;
         
-        let tx = await SalesFactory.connect(owner).produceToken(
+        let tx = await SalesFactory.connect(owner).produceSalesForToken(
             Token2PayInstance.target,
             CommonSettings,
             priceSettings,
             thresholdBonuses,
             enumWithdrawOption.anytime,
             dontUseWhitelist,
-            dontUseLockedInAmount
+            dontUseLockedInAmount,
+            CompensationSettings
         );
 
         const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -746,6 +753,7 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseLockedInAmount,
                 CommonSettings,
+                CompensationSettings,
                 SalesFactory,
                 ERC20MintableInstance,
                 Token2PayInstance
@@ -761,7 +769,7 @@ describe("Sales", function () {
                 true
             ];
 
-            let tx = await SalesFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceSalesForToken(
                 Token2PayInstance.target,
                 //ERC20MintableInstance.target,
                 CommonSettings,
@@ -769,7 +777,8 @@ describe("Sales", function () {
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
-                dontUseLockedInAmount
+                dontUseLockedInAmount,
+                CompensationSettings
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -873,6 +882,7 @@ describe("Sales", function () {
                 enumWithdrawOption,
                 dontUseLockedInAmount,
                 CommonSettings,
+                CompensationSettings,
                 SalesFactory,
                 ERC20MintableInstance,
                 Token2PayInstance
@@ -888,14 +898,15 @@ describe("Sales", function () {
             ];
 
             
-            let tx = await SalesFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceSalesForToken(
                 Token2PayInstance.target,
                 CommonSettings,
                 priceSettings,
                 thresholdBonuses,
                 enumWithdrawOption.anytime,
                 UseExternalWhitelist,
-                dontUseLockedInAmount
+                dontUseLockedInAmount,
+                CompensationSettings
             );
 
             const rc = await tx.wait(); // 0ms, as tx is already confirmed
@@ -1061,17 +1072,18 @@ describe("Sales", function () {
                 lastTime,
                 lastTimeForCompensation,
                 ERC20MintableInstance,
-                SalesInstance
-            } = await loadFixture(deploySalesInstance);
+                Token2PayInstance,
+                SalesTokenInstance
+            } = await loadFixture(deploySalesTokenInstance);
 
             if (trustedForwardMode) {
-                await SalesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+                await SalesTokenInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
             }
 
             let tmp = await ethers.provider.send("eth_blockNumber",[]);
             tmp = await ethers.provider.send("eth_getBlockByNumber",[tmp, true]);
             let currentBlockTime = BigInt(tmp.timestamp);
-            await ERC20MintableInstance.connect(owner).mint(SalesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+            await ERC20MintableInstance.connect(owner).mint(SalesTokenInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
 
             var prices=[3000n,5500n,4000n];
             var sent=[];
@@ -1081,15 +1093,20 @@ describe("Sales", function () {
             //make iterations:
             for (var i=0; i < prices.length; ++i) {
 
-                await SalesInstance.connect(owner).setPrice(prices[i],1); // imitate uniswap price usdt/bnb 
+                await SalesTokenInstance.connect(owner).setPrice(prices[i],1); // imitate uniswap price usdt/bnb 
 
-                ratio_ETH_ITR = await SalesInstance.getTokenPrice();
+                ratio_ETH_ITR = await SalesTokenInstance.getTokenPrice();
                 accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
                 // send ETH to Contract
-                await accountTwo.sendTransaction({
-                    to: SalesInstance.target, 
-                    value: amountETHSendToContract
-                });
+                // await accountTwo.sendTransaction({
+                //     to: SalesTokenInstance.target, 
+                //     value: amountETHSendToContract
+                // });
+                await Token2PayInstance.connect(owner).mint(accountTwo.address, amountTokenSendToContract);
+                await Token2PayInstance.connect(accountTwo).approve(SalesTokenInstance.target, amountTokenSendToContract);
+                await mixedCall(SalesTokenInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy(uint256)', [amountTokenSendToContract]);
+                //-------------------------------
                 accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
 
                 sent[i] = amountETHSendToContract * ethDenom / ratio_ETH_ITR;
@@ -1103,25 +1120,32 @@ describe("Sales", function () {
 
             // run compensation
             await expect(
-                SalesInstance.connect(accountTwo).compensation()
-            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeShouldBePassed');
+                SalesTokenInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesTokenInstance, 'CompensationTimeShouldBePassed');
 
             // go to end time
             await time.increase(lastTime-currentBlockTime);
             
             //set Price
-            await SalesInstance.connect(owner).setPrice(endPrice,1);
+            await SalesTokenInstance.connect(owner).setPrice(endPrice,1);
 
             var expectedCompensationAmount = 0n;
 
             for (var i=0; i < prices.length; ++i) {
-                if (endPrice > prices[i]) {
-                    expectedCompensationAmount += endPrice * sent[i] / prices[i];
+                // send =  sent * newPrice / oldPrice
+                // if (send <= sent) continue;
+                // otherwise compensationAmount += send - sent
+                var send = sent[i] * endPrice / prices[i];
+                if (send <= sent[i]) {
+                    continue;
                 }
+                
+                expectedCompensationAmount += send - sent[i];
+                
             }
 
             accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
-            await SalesInstance.connect(accountTwo).compensation();
+            await SalesTokenInstance.connect(accountTwo).compensation();
             accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
 
             expect(
@@ -1131,15 +1155,15 @@ describe("Sales", function () {
             );
 
             await expect(
-                SalesInstance.connect(accountTwo).compensation()
-            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationNotFound');
+                SalesTokenInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesTokenInstance, 'CompensationNotFound');
 
             // go to compensation end time
             await time.increase(lastTimeForCompensation - lastTime);
 
             await expect(
-                SalesInstance.connect(accountTwo).compensation()
-            ).to.be.revertedWithCustomError(SalesInstance, 'CompensationTimeExpired');
+                SalesTokenInstance.connect(accountTwo).compensation()
+            ).to.be.revertedWithCustomError(SalesTokenInstance, 'CompensationTimeExpired');
 
         });
 

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../SalesToken.sol";
+import "../SalesForToken.sol";
 
-contract SalesTokenMock is SalesToken {
+contract SalesTokenMock is SalesForToken {
     
     
     /**
@@ -29,5 +29,19 @@ contract SalesTokenMock is SalesToken {
     // changed this can broke exchange, but need to test tokenPrice()
     function setTotalAmountRaised(uint256 input) public {
         totalAmountRaised = input;
+    }
+
+    bytes16 mockPrice; // ABDKMathQuad
+
+    function setPrice(uint112 num, uint112 den) public {
+        //mockPrice = FixedPoint.fraction(num, den);
+        mockPrice = ABDKMathQuad.mul(
+            ABDKMathQuad.fromUInt(num),
+            ABDKMathQuad.fromUInt(den)
+        );
+    }
+    function getPrice() internal view override returns(bytes16) {
+        return mockPrice;
+
     }
 }

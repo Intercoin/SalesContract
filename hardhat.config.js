@@ -38,11 +38,11 @@ module.exports = {
       gasPrice: "auto",
       gasLimit: 22000000,
       //[maticURL]
-      // chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
-      // forking: {url: maticURL}
+      chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
+      forking: {url: maticURL}
       //[mainnetURL]
-      chainId: 0x1,
-      forking: {url: mainnetURL}
+      // chainId: 0x1,
+      // forking: {url: mainnetURL}
       //url: bscURL
       
     },

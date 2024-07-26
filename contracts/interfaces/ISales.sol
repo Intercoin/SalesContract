@@ -11,7 +11,6 @@ interface ISales is ISalesStructs {
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -32,6 +31,7 @@ interface ISales is ISalesStructs {
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
      * @param _costManager costmanager address
+     * @param _producedBy used to store which address will create instance. msg.sender is a factory
      */
      function init(
         CommonSettings memory _commonSettings,

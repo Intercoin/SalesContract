@@ -14,7 +14,11 @@ interface ISalesStructs {
         address token1;
         address liquidityLib;
         uint64 endTime;
-        uint64 compensationEndTime;
+        
+    }
+
+    struct CompensationSettings {
+        uint64 endTime;
     }
     
     struct PriceSettings {

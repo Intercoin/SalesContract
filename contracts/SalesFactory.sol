@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./interfaces/ISalesAggregator.sol";
-import "./interfaces/ISalesToken.sol";
+import "./interfaces/ISalesWithStablePrices.sol";
+import "./interfaces/ISalesForToken.sol";
 import "./interfaces/ISales.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@intercoin/releasemanager/contracts/CostManagerFactoryHelper.sol";
@@ -83,16 +83,16 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     using Clones for address;
 
     address public immutable salesImplementation;
-    address public immutable salesTokenImplementation;
-    address public immutable salesAggregatorImplementation;
+    address public immutable salesForTokenImplementation;
+    address public immutable salesWithStablePricesImplementation;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
   
     constructor(
         address salesImpl,
-        address salesTokenImpl,
-        address salesAggregatorImpl,
+        address salesForTokenImpl,
+        address salesWithStablePricesImpl,
         address costManager,
         address releaseManager
     ) 
@@ -100,8 +100,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         CostManagerFactoryHelper(costManager)
     {
         salesImplementation = salesImpl;
-        salesTokenImplementation = salesTokenImpl;
-        salesAggregatorImplementation = salesAggregatorImpl;
+        salesForTokenImplementation = salesForTokenImpl;
+        salesWithStablePricesImplementation = salesWithStablePricesImpl;
 
     }
     ////////////////////////////////////////////////////////////////////////
@@ -128,7 +128,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -186,7 +185,6 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
      *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -205,23 +203,26 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      */
-    function produceToken(
+    function produceSalesForToken(
         address _payToken,
         ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
-        ISalesStructs.LockedInPrice memory _lockedInPrice
+        ISalesStructs.LockedInPrice memory _lockedInPrice,
+        ISalesStructs.CompensationSettings memory _compensationSettings
     ) 
         public 
         nonReentrant
         returns(address) 
     {
-        address instance = address(salesTokenImplementation).clone();
+        address instance = address(salesForTokenImplementation).clone();
         
-        ISalesToken(instance).init(
+        ISalesForToken(instance).init(
             _payToken,
             _commonSettings,
             _priceSettings,
@@ -229,6 +230,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
+            _compensationSettings,
             costManager,
             _msgSender()
         );
@@ -245,8 +247,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  address token0 USD Coin
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
-     *  address endTime after this time exchange stop
-     *  address compensationEndTime after this time receiving compensation tokens will be disabled
+     *  address endTime after this time exchange stop     
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -265,28 +266,32 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      * @param _lockedInPrice lockedInPrice struct
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
+     * @param _compensationSettings compensationSettings data struct
+     *  address endTime after this time receiving compensation tokens will be disabled
      */
-    function produceAggregator(
+    function produceWithStablePrices(
         ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
         ISalesStructs.EnumWithdraw _ownerCanWithdraw,
         IWhitelist.WhitelistStruct memory _whitelistData,
-        ISalesStructs.LockedInPrice memory _lockedInPrice
+        ISalesStructs.LockedInPrice memory _lockedInPrice,
+        ISalesStructs.CompensationSettings memory _compensationSettings
     ) 
         public 
         nonReentrant
         returns(address) 
     {
-        address instance = address(salesAggregatorImplementation).clone();
+        address instance = address(salesWithStablePricesImplementation).clone();
         
-        ISalesAggregator(instance).init(
+        ISalesWithStablePrices(instance).init(
             _commonSettings,
             _priceSettings,
             _bonusSettings,
             _ownerCanWithdraw,
             _whitelistData,
             _lockedInPrice,
+            _compensationSettings,
             costManager,
             _msgSender()
         );
