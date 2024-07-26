@@ -63,17 +63,20 @@ abstract contract SalesBaseWithCompensation is SalesBase {
         bytes16 currentPrice = getPrice(); // ABDKMathQuad memory
         uint256 compensationAmount = 0;
         for(uint256 i = compensationData.claimedCounter; i < compensationData.nextCounter; ++i) {
-            // compensate =  [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
-
+            // compensate =  [was sent] - [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
             if (ABDKMathQuad.toUInt(compensationData.price[i]) < ABDKMathQuad.toUInt(currentPrice)) {
+                bytes16 sent = ABDKMathQuad.fromUInt(compensationData.sent[i]);
 
                 compensationAmount += (
                     ABDKMathQuad.toUInt(
-                        ABDKMathQuad.div(
-                            ABDKMathQuad.fromUInt(compensationData.sent[i]), // not more than 1e15 tokens
+                        ABDKMathQuad.sub(
+                            sent,
                             ABDKMathQuad.div(
-                                compensationData.price[i],
-                                currentPrice
+                                sent, // not more than 1e15 tokens
+                                ABDKMathQuad.div(
+                                    compensationData.price[i],
+                                    currentPrice
+                                )
                             )
                         )
                     )
