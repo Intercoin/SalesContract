@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 import "./SalesBase.sol";
+
 abstract contract SalesBaseWithCompensation is SalesBase {
     
     struct Compensation{
@@ -63,25 +64,24 @@ abstract contract SalesBaseWithCompensation is SalesBase {
         bytes16 currentPrice = getPrice(); // ABDKMathQuad memory
         uint256 compensationAmount = 0;
         for(uint256 i = compensationData.claimedCounter; i < compensationData.nextCounter; ++i) {
-            // compensate =  [was sent] - [was sent] / ([oldPrice]/[newPrice]), where newPrice > oldPrice
-            if (ABDKMathQuad.toUInt(compensationData.price[i]) < ABDKMathQuad.toUInt(currentPrice)) {
-                bytes16 sent = ABDKMathQuad.fromUInt(compensationData.sent[i]);
 
-                compensationAmount += (
-                    ABDKMathQuad.toUInt(
-                        ABDKMathQuad.sub(
-                            sent,
-                            ABDKMathQuad.div(
-                                sent, // not more than 1e15 tokens
-                                ABDKMathQuad.div(
-                                    compensationData.price[i],
-                                    currentPrice
-                                )
-                            )
-                        )
-                    )
+            // send =  sent * newPrice / oldPrice
+            // otherwise compensationAmount += send - sent
+            bytes16 sent = ABDKMathQuad.fromUInt(compensationData.sent[i]);
+            bytes16 send = 
+                ABDKMathQuad.div(
+                    ABDKMathQuad.mul(
+                        sent,
+                        currentPrice
+                    ),
+                    compensationData.price[i]
                 );
+            // if (send <= sent) continue;
+            // otherwise compensationAmount += send - sent
+            if (send > sent) {
+                compensationAmount += ABDKMathQuad.toUInt(ABDKMathQuad.sub(send, sent));
             }
+
         }
 
         compensationData.claimedCounter = compensationData.nextCounter;
