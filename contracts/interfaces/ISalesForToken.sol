@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
+
 import "./ISalesStructs.sol";
 import "@intercoin/whitelist/contracts/interfaces/IWhitelist.sol";
 
-interface ISalesAggregator is ISalesStructs {
-     /**
+interface ISalesForToken is ISalesStructs {
+    /**
+     * @param _payToken address of token's pay
      * @param _commonSettings CommonSettings data struct
      *  address sellingToken address of ITR token
      *  address token0 USD Coin
@@ -34,6 +36,7 @@ interface ISalesAggregator is ISalesStructs {
      * @param _costManager costmanager address
      */
      function init(
+        address _payToken,
         CommonSettings memory _commonSettings,
         PriceSettings[] memory _priceSettings,
         ThresholdBonuses[] memory _bonusSettings,
@@ -44,7 +47,5 @@ interface ISalesAggregator is ISalesStructs {
         address _producedBy
     ) external;
 
-    function owner() external view returns (address);
+    function owner() external view returns (address);   
 }
-
-

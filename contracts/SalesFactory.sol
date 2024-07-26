@@ -3,8 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/proxy/Clones.sol";
-import "./interfaces/ISalesAggregator.sol";
-import "./interfaces/ISalesToken.sol";
+import "./interfaces/ISalesWithStablePrices.sol";
+import "./interfaces/ISalesForToken.sol";
 import "./interfaces/ISales.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@intercoin/releasemanager/contracts/CostManagerFactoryHelper.sol";
@@ -83,16 +83,16 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
     using Clones for address;
 
     address public immutable salesImplementation;
-    address public immutable salesTokenImplementation;
-    address public immutable salesAggregatorImplementation;
+    address public immutable salesForTokenImplementation;
+    address public immutable salesWithStablePricesImplementation;
     
     address[] public instances;
     event InstanceCreated(address instance, uint instancesCount);
   
     constructor(
         address salesImpl,
-        address salesTokenImpl,
-        address salesAggregatorImpl,
+        address salesForTokenImpl,
+        address salesWithStablePricesImpl,
         address costManager,
         address releaseManager
     ) 
@@ -100,8 +100,8 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         CostManagerFactoryHelper(costManager)
     {
         salesImplementation = salesImpl;
-        salesTokenImplementation = salesTokenImpl;
-        salesAggregatorImplementation = salesAggregatorImpl;
+        salesForTokenImplementation = salesForTokenImpl;
+        salesWithStablePricesImplementation = salesWithStablePricesImpl;
 
     }
     ////////////////////////////////////////////////////////////////////////
@@ -206,7 +206,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
-    function produceToken(
+    function produceSalesForToken(
         address _payToken,
         ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
@@ -219,9 +219,9 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         nonReentrant
         returns(address) 
     {
-        address instance = address(salesTokenImplementation).clone();
+        address instance = address(salesForTokenImplementation).clone();
         
-        ISalesToken(instance).init(
+        ISalesForToken(instance).init(
             _payToken,
             _commonSettings,
             _priceSettings,
@@ -266,7 +266,7 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
      *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
      */
-    function produceAggregator(
+    function produceWithStablePrices(
         ISalesStructs.CommonSettings memory _commonSettings,
         ISalesStructs.PriceSettings[] memory _priceSettings,
         ISalesStructs.ThresholdBonuses[] memory _bonusSettings,
@@ -278,9 +278,9 @@ contract SalesFactory is Ownable, ReentrancyGuard, CostManagerFactoryHelper, Rel
         nonReentrant
         returns(address) 
     {
-        address instance = address(salesAggregatorImplementation).clone();
+        address instance = address(salesWithStablePricesImplementation).clone();
         
-        ISalesAggregator(instance).init(
+        ISalesWithStablePrices(instance).init(
             _commonSettings,
             _priceSettings,
             _bonusSettings,

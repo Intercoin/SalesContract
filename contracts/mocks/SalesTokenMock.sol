@@ -2,9 +2,9 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "../SalesToken.sol";
+import "../SalesForToken.sol";
 
-contract SalesTokenMock is SalesToken {
+contract SalesTokenMock is SalesForToken {
     
     
     /**

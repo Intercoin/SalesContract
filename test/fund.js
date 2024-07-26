@@ -119,7 +119,7 @@ describe("Sales", function () {
 
         var SalesMockF = await ethers.getContractFactory("SalesMock");    
         var SalesTokenF = await ethers.getContractFactory("SalesTokenMock");
-        var SalesAggregatorF = await ethers.getContractFactory("SalesAggregator");
+        var SalesAggregatorF = await ethers.getContractFactory("SalesWithStablePrices");
 
         const ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
 
@@ -255,7 +255,7 @@ describe("Sales", function () {
             Token2PayInstance
         } = res;
         
-        let tx = await SalesFactory.connect(owner).produceToken(
+        let tx = await SalesFactory.connect(owner).produceSalesForToken(
             Token2PayInstance.target,
             CommonSettings,
             priceSettings,
@@ -761,7 +761,7 @@ describe("Sales", function () {
                 true
             ];
 
-            let tx = await SalesFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceSalesForToken(
                 Token2PayInstance.target,
                 //ERC20MintableInstance.target,
                 CommonSettings,
@@ -888,7 +888,7 @@ describe("Sales", function () {
             ];
 
             
-            let tx = await SalesFactory.connect(owner).produceToken(
+            let tx = await SalesFactory.connect(owner).produceSalesForToken(
                 Token2PayInstance.target,
                 CommonSettings,
                 priceSettings,

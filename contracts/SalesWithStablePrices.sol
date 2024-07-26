@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
-import "./interfaces/ISalesAggregator.sol";
+import "./interfaces/ISalesWithStablePrices.sol";
 import "./SalesBase.sol";
 
 /**
@@ -54,7 +54,7 @@ This Agreement shall continue to apply to any successors or assigns of either pa
 ARBITRATION
 All disputes related to this agreement shall be governed by and interpreted in accordance with the laws of New York, without regard to principles of conflict of laws. The parties to this agreement will submit all disputes arising under this agreement to arbitration in New York City, New York before a single arbitrator of the American Arbitration Association (“AAA”). The arbitrator shall be selected by application of the rules of the AAA, or by mutual agreement of the parties, except that such arbitrator shall be an attorney admitted to practice law New York. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section. No party to this agreement will challenge the jurisdiction or venue provisions as provided in this section.
 **/
-contract SalesAggregator is SalesBase, ISalesAggregator {
+contract SalesWithStablePrices is SalesBase, ISalesWithStablePrices {
     using ABDKMathQuad for *;
     
     uint256 price;
@@ -145,7 +145,7 @@ contract SalesAggregator is SalesBase, ISalesAggregator {
         );
     }
 
-    function owner() public view override(ISalesAggregator, SalesBase) returns (address) {
+    function owner() public view override(ISalesWithStablePrices, SalesBase) returns (address) {
         return super.owner();
     }
     
