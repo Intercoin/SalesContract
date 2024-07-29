@@ -79,7 +79,7 @@ contract Sales is SalesBase, ISales {
      *  address token0 USD Coin
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
-     *  address endTime after this time exchange stop
+     *  uint64 endTime after this time exchange stop
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange

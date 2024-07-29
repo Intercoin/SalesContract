@@ -22,15 +22,13 @@ async function main() {
 		// *  address token0 USD Coin
 		// *  address token1 Wrapped token (WETH,WBNB,...)
 		// *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
-		// *  address endTime after this time exchange stop
-		// *  address compensationEndTime after this time receiving compensation tokens will be disabled
+		// *  uint64 endTime after this time exchange stop
 		[
 			"0x3eC1440B81c55cB7646491A7187710512A7f4b19",
 			"0x8ac76a51cc950d9822d68b83fe1ad97b32cd580d",
 			"0x55d398326f99059ff775485246999027b3197955",
 			"0x1ea4c4613a4dfdaeeb95a261d11520c90d5d6252",
-			1725148800,
-			1825148800
+			1725148800
 		],
 		// * @param _priceSettings PriceSettings struct's array
 		// *  uint64 timestamp timestamp
@@ -54,7 +52,12 @@ async function main() {
 		// * @param _lockedInPrice lockedInPrice struct
 		// *  uint256 _minimumLockedInAmount Minimum amount required to buy and hold the price.
 		// *  uint256 _maximumLockedInAmount Maximum amount available to buy at the held price.
-		["0xd3c21bcecceda100000","0x295be96e6406697200000"]
+		["0xd3c21bcecceda100000","0x295be96e6406697200000"],
+		// * @param _compensationSettings compensationSettings data struct		
+		// *  uint64 endTime after this time receiving compensation tokens will be disabled
+		[
+			1825148800
+		]
 	];
 	let params = [
 		..._params,

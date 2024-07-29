@@ -83,8 +83,8 @@ async function main() {
     console.log("Account balance:", (deployerBalanceBefore).toString());
 
 	const FundContractF = await ethers.getContractFactory("Sales");
-	const FundContractAggregatorF = await ethers.getContractFactory("SalesAggregator");
-    const FundContractTokenF = await ethers.getContractFactory("SalesToken");
+	const FundContractAggregatorF = await ethers.getContractFactory("SalesWithStablePrices");
+    const FundContractTokenF = await ethers.getContractFactory("SalesForToken");
 	    
 	let implementationFundContract          = await FundContractF.connect(depl_auxiliary).deploy();
     let implementationFundContractAggregator= await FundContractAggregatorF.connect(depl_auxiliary).deploy();
@@ -95,10 +95,10 @@ async function main() {
 	
     const liquidityLib = "0x1ea4c4613a4dfdaeeb95a261d11520c90d5d6252";
 	console.log("Implementations:");
-	console.log("  FundContract deployed at:            ", implementationFundContract.target);
-    console.log("  FundContractAggregator deployed at:  ", implementationFundContractAggregator.target);
-	console.log("  FundContractToken deployed at:       ", implementationFundContractToken.target);
-    console.log("  liquidityLib uses at:                ", liquidityLib);//1.0.0
+	console.log("  Sales deployed at:                   ", implementationFundContract.target);
+    console.log("  SalesWithStablePrices deployed at:   ", implementationFundContractAggregator.target);
+	console.log("  SalesForToken deployed at:           ", implementationFundContractToken.target);
+    console.log("  liquidityLib uses at:                ", liquidityLib); //1.0.0 - 1.0.3 !!!
     console.log("Linked with manager:");
     console.log("  Release manager:", RELEASE_MANAGER);
 

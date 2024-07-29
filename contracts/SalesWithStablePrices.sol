@@ -65,7 +65,7 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
      *  address token0 USD Coin
      *  address token1 Wrapped token (WETH,WBNB,...)
      *  address liquidityLib liquidityLib address(see intercoin/liquidity pkg)
-     *  address endTime after this time exchange stop
+     *  uint64 endTime after this time exchange stop
      * @param _priceSettings PriceSettings struct's array
      *  uint64 timestamp timestamp
      *  uint256 price price exchange
@@ -86,7 +86,7 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
      *  uint256 minimumLockedInAmount Minimum amount required to buy and hold the price.
      *  uint256 maximumLockedInAmount Maximum amount available to buy at the held price.
      * @param _compensationSettings compensationSettings data struct
-     *  address endTime after this time receiving compensation tokens will be disabled
+     *  uint64 endTime after this time receiving compensation tokens will be disabled
      * @param _costManager costmanager address
      * @param _producedBy used to store which address will create instance. msg.sender is a factory
      */
