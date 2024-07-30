@@ -22,7 +22,7 @@ console.log(_arguments);
 
     //const SalesFactory = await ethers.getContractAt("SalesFactory", "0x080101006379fcb14e08a24388888bbb8fbfa8c9");   
 	const SalesFactoryF = await ethers.getContractFactory("SalesFactory");   
-	const SalesFactory = SalesFactoryF.attach("0x080101006379fcb14e08a24388888bbb8fbfa8c9");
+	const SalesFactory = SalesFactoryF.attach("0x08010100d9d250947417b9de5b6622fa1dcb64b8");
 	//---
 	
 	let tx = await SalesFactory.connect(deployer).produceWithStablePrices(..._arguments);
