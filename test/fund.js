@@ -6,6 +6,9 @@ require("@nomicfoundation/hardhat-chai-matchers");
 const { 
     getStableCoinsList
 } = require("./helpers/stablecoins.js");
+const { 
+    getArguments
+} = require("../scripts/helpers/arguments-for-stable-prices.js");
 
 const mixedCall = require('../js/mixedCall.js');
 
@@ -119,7 +122,7 @@ describe("Sales", function () {
 
         var SalesMockF = await ethers.getContractFactory("SalesMock");    
         var SalesTokenF = await ethers.getContractFactory("SalesTokenMock");
-        var SalesAggregatorF = await ethers.getContractFactory("SalesWithStablePrices");
+        var SalesAggregatorF = await ethers.getContractFactory("SalesWithStablePricesMock");
 
         const ERC20MintableF = await ethers.getContractFactory("ERC20Mintable");
 
@@ -330,6 +333,34 @@ describe("Sales", function () {
 
         return {...res, ...{
             SalesInstance
+        }};
+    }
+
+    async function deploySalesWithStablePricesInstance() {
+        
+
+        const res = await loadFixture(deploy);
+        const {
+            owner,
+            ERC20MintableInstance,
+            SalesFactory,
+        } = res;
+        
+        var _arguments = getArguments();
+        // override selling token 
+        _arguments[0][0] = ERC20MintableInstance.target;
+
+        let tx = await SalesFactory.connect(owner).produceWithStablePrices(..._arguments);
+
+        const rc = await tx.wait(); // 0ms, as tx is already confirmed
+
+        const event = rc.logs.find(obj => obj.fragment && obj.fragment.name === 'InstanceCreated');
+        const [instance,] = event.args;
+
+        const SalesWithStablePricesInstance = await ethers.getContractAt("SalesWithStablePricesMock",instance);
+
+        return {...res, ...{
+            SalesWithStablePricesInstance
         }};
     }
 
@@ -941,6 +972,39 @@ describe("Sales", function () {
             // send Token2 to Contract 
             await mixedCall(SalesTokenInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy(uint256)', [amountTokenSendToContract], {custom:"WhitelistError"});
 
+        });
+
+        xit('common test(sales-with-stable-prices)', async () => {
+            const {
+                owner,
+                accountTwo,
+                trustedForwarder,
+                ERC20MintableInstance,
+                SalesWithStablePricesInstance
+            } = await loadFixture(deploySalesWithStablePricesInstance);
+
+            if (trustedForwardMode) {
+                await SalesWithStablePricesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            const _args = getArguments();
+
+            console.log(await SalesWithStablePricesInstance.getCustomTwoPrices());
+
+            await ERC20MintableInstance.connect(owner).mint(SalesWithStablePricesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+            await SalesWithStablePricesInstance.connect(owner).whitelistAdd(accountTwo.address);
+
+            var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            // send ETH to Contract
+            await accountTwo.sendTransaction({
+                to: SalesWithStablePricesInstance.target, 
+                value: ethers.parseEther('1')
+            });
+
+            var accountTwoBalanceActual = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+            console.log("accountTwoBalanceBefore = ", accountTwoBalanceBefore);
+            console.log("accountTwoBalanceActual = ", accountTwoBalanceActual);
         });
     
         it('test tokenPrice', async () => {

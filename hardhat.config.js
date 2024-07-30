@@ -40,6 +40,9 @@ module.exports = {
       allowUnlimitedContractSize: false,
       gasPrice: "auto",
       gasLimit: 22000000,
+      // //[bscURL]
+      // chainId: 56,
+      // forking: {url: bscURL, blockNumber: 40919244}
       //[maticURL]
       chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
       forking: {url: maticURL}
