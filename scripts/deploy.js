@@ -82,8 +82,8 @@ async function main() {
 	let _params = [
 		// implementation was created inside
 		data_object.implementationFundContract,
-		data_object.implementationFundContractAggregator,
 		data_object.implementationFundContractToken,
+		data_object.implementationFundContractAggregator,
 		ZERO_ADDRESS, //costmanager
 		data_object.releaseManager
 	]
