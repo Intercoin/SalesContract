@@ -34,7 +34,23 @@ function getArguments(){
         // * @param _bonusSettings ThresholdBonuses struct's array
         // *  uint256 threshold thresholds
         // *  uint256 bonus bonuses
-        [[0,0],["0x2b5e3af16b1880000",25],["0x56bc75e2d63100000",50],["0x56bc75e2d63100000",75],["0x15af1d78b58c400000",100]],
+        //   
+        // dividing by 0.05$ to get amount of tokens
+        // $0-10K 0% bonus
+        // $10K - $25K 10% bonus
+        // $25K - $50K 25% bonus
+        // $50K - $75K 50% bonus 
+        // $75K - $100K 75% bonus
+        // $100K+     100% bonus m
+
+        [   //reach 0 tokens - 0 bonus, reach 200_000 tokens - 10% and so on
+            [0,0],                          // 0 tokens - 0%
+            ["0x2a5a058fc295ed000000",10],  //200_000 tokens - 10%
+            ["0x69e10de76676d0800000",25],  //500_000
+            ["0xd3c21bcecceda1000000",50],  //1_000_000
+            ["0x13da329b6336471800000",75], //1_500_000
+            ["0x1a784379d99db42000000",100] // 2_000_000
+        ],
         // * @param _ownerCanWithdraw enum option where:
         // *  0 -owner can not withdraw tokens
         // *  1 -owner can withdraw tokens only after endTimePassed
