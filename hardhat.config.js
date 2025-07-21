@@ -18,40 +18,56 @@ require("@nomicfoundation/hardhat-toolbox");
 
 //----------------------------------------------------------------
 
-const kovanURL = `https://eth-kovan.alchemyapi.io/v2/${process.env.ALCHEMY_KOVAN}`
-const goerliURL = `https://eth-goerli.alchemyapi.io/v2/${process.env.ALCHEMY_GOERLI}`
-const rinkebyURL = `https://rinkeby.infura.io/v3/${process.env.INFURA_ID_PROJECT}` //`https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_RINKEBY}`
-const bscURL = 'https://bsc-dataseed.binance.org' //`https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_RINKEBY}`
+const bscURL = `https://bsc-mainnet.infura.io/v3/${process.env.INFURA_ID_PROJECT}`//'https://bsc-dataseed.binance.org'
 const mainnetURL = `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_MAINNET}`
-const maticURL = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MATIC}`
+const maticURL = `https://polygon-mainnet.infura.io/v3/${process.env.INFURA_ID_PROJECT}`//`https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_MATIC}`
 const mumbaiURL = "https://polygon-mumbai-bor.publicnode.com";//'https://matic-mumbai.chainstacklabs.com';
 
 const baseURL = 'https://mainnet.base.org';
 const optimismURL = 'https://optimism.llamarpc.com';
 
+//--------------------------
 module.exports = {
+  solidity: "0.8.28",
   defaultNetwork: "hardhat",
   networks: {
-    // sepolia: {
-    //   url: "https://sepolia.infura.io/v3/<key>",
-    //   accounts: [privateKey1, privateKey2, ...]
-    // }
+    
     hardhat: {
+      accounts: [
+        {
+          privateKey: process.env.private_key,
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: process.env.private_key_auxiliary,
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: process.env.private_key_releasemanager,
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: process.env.private_key_sales,
+          balance: '10000000000000000000000'
+        },
+      ],
       allowUnlimitedContractSize: false,
-      gasPrice: "auto",
-      gasLimit: 22000000,
+      //gasPrice: "auto",
+      //gasLimit: 22000000,
       // //[bscURL]
-      // chainId: 56,
-      // forking: {url: bscURL, blockNumber: 40919244}
-      //[maticURL]
-      chainId: 0x89,  // sync with url or getting uniswap settings will reject transactions
-      forking: {url: maticURL}
-      //[mainnetURL]
-      // chainId: 0x1,
-      // forking: {url: mainnetURL}
-      //url: bscURL
+      chainId: 56,
+      forking: {url: bscURL,}
+      //forking: {url: 'https://bsc.blockrazor.xyz',}
+      //forking: {url: 'https://binance.llamarpc.com',}
+
+      //[matic]
+      // chainId: 137,
+      // forking: {url: maticURL}
+      
+      
       
     },
+    
     bsc: {
       url: bscURL,
       chainId: 56,
