@@ -30,4 +30,16 @@ contract SalesWithStablePricesMock is SalesWithStablePrices {
     function getCustomTwoPrices() public view returns(bytes16, bytes16) {
         return (mockPrice, super.getPrice());
     }
+     function getTokenAmountMock(
+        address sender,
+        uint256 inputAmount
+    ) internal view returns (
+        uint256 totalAmount2Send,
+        uint256[2] memory inputAmounts,
+        uint256[2] memory tokenPrices,
+        uint256[2] memory tokens2Send
+    ) {
+        return getTokenAmount(sender,inputAmount);
+    }
+
 }

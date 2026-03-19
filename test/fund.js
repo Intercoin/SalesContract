@@ -1075,22 +1075,91 @@ describe("Sales", function () {
             expect(SalesWithStablePricesInstanceBalanceAfterClaimAll2).to.be.eq(0n);
             expect(ownerBalanceActualClaimAll2-ownerBalanceActual2).to.be.eq(SalesWithStablePricesInstanceBalanceActual2-txFee2);
 
-/*
-const rc1 = await tx1.wait(); 
-                
-                var txFee= rc1.cumulativeGasUsed * rc1.gasPrice;
+        });
 
-                if (trustedForwardMode) {
-                    txFee = 0n; // owner didn't spent anything, trusted forwarder payed fee for tx
-                }
+        it('complex test "buy/buyFor/claimAll - setMinimum - claimAll" with (sales-with-stable-prices)', async () => {
+            const {
+                owner,
+                accountTwo,
+                accountThree,
+                trustedForwarder,
+                ERC20MintableInstance,
+                SalesWithStablePricesInstance
+            } = await loadFixture(deploySalesWithStablePricesInstance);
 
-                var accountOwnerBalanceAfter = (await ethers.provider.getBalance(owner.address));
-                
+            if (trustedForwardMode) {
+                await SalesWithStablePricesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
 
-                const ExpectedOwnerETH = totalETHToSend - (totalETHToSend * (1000n+2000n+1000n) / (FRACTION));
-                expect(accountOwnerBalanceAfter - accountOwnerBalanceBefore).to.be.eq(ExpectedOwnerETH - txFee);
+            await ERC20MintableInstance.connect(owner).mint(SalesWithStablePricesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+            await SalesWithStablePricesInstance.connect(owner).whitelistAdd(accountTwo.address);
 
- */
+
+            //#1
+            //await SalesWithStablePricesInstance.connect(owner).setPrice(1,1); // imitate uniswap price usdt/bnb 
+
+            // buy tokens via method buy
+            var amountETHToSend = ONE_ETH;
+            var amountETHToSendLess = ONE_ETH-ONE_ETH/TEN;
+            var amountETHToSendMore = ONE_ETH+ONE_ETH/TEN;
+            //var ratio_ETH_ITR = await SalesWithStablePricesInstance.getTokenPrice();
+
+            var accountTwoBalanceBefore1 = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            //await SalesWithStablePricesInstance.connect(accountTwo).buy({value: ethers.amountETHToSend});
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy()', [{value: amountETHToSend}]);
+            var accountTwoBalanceAfter1 = await ERC20MintableInstance.balanceOf(accountTwo.address);
+
+            // claimAll
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
+
+            //var expectedTokens = amountETHToSend * ethDenom*HUNDRED / ratio_ETH_ITR;
+
+            
+            // console.log("accountTwoBalanceBefore1   = ", accountTwoBalanceBefore1);
+            // console.log("accountTwoBalanceAfter1    = ", accountTwoBalanceAfter1);
+            // console.log("expectedTokens             = ", expectedTokens);
+            // console.log("amountETHToSend            = ", amountETHToSend);
+            // console.log("ratio_ETH_ITR              = ", ratio_ETH_ITR);
+
+            // expect(
+            //     accountTwoBalanceAfter1
+            // ).to.be.eq(
+            //     accountTwoBalanceBefore1 + expectedTokens
+            // );
+            // expect(accountTwoBalanceAfter1-accountTwoBalanceBefore1).to.be.eq(expectedTokens);
+
+
+            //#2
+            var actualTokens = accountTwoBalanceAfter1-accountTwoBalanceBefore1;
+            //increase minimum 
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'setMinimum', [actualTokens]);
+
+            // try to buy
+            //error MinTokenPurchaseNotMet(uint256 min, uint256 provided);
+            //await SalesWithStablePricesInstance.connect(accountTwo).buy(amountETHSendToContract);
+
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy()', [{value: amountETHToSendLess}], {custom: "MinTokenPurchaseNotMet"});
+            
+
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy()', [{value: amountETHToSendMore + ONE_ETH}]);
+
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
+
+            const SalesWithStablePricesInstanceBalanceAfterClaimAll2 = await ethers.provider.getBalance(SalesWithStablePricesInstance.target);
+            //var ownerBalanceActualClaimAll2 = await ethers.provider.getBalance(owner.address);
+            expect(SalesWithStablePricesInstanceBalanceAfterClaimAll2).to.be.eq(0n);
+            
+            await SalesWithStablePricesInstance.connect(owner).whitelistAdd(accountThree.address);
+            var accountTwoBalanceBefore3 = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var accountThreeBalanceBefore3 = await ERC20MintableInstance.balanceOf(accountThree.address);
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buyFor(address)', [accountThree.address,{value: amountETHToSendMore + ONE_ETH}]);
+            var accountTwoBalanceAfter3 = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var accountThreeBalanceAfter3 = await ERC20MintableInstance.balanceOf(accountThree.address);
+
+            expect(accountTwoBalanceAfter3-accountTwoBalanceBefore3).to.be.eq(0n);
+            expect(accountThreeBalanceAfter3).to.be.gt(accountThreeBalanceBefore3);
+
+
         });
     
         it('test tokenPrice', async () => {
