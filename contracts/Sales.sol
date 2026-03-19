@@ -170,7 +170,7 @@ contract Sales is SalesBase, ISales {
      * @param amount amount of eth
      * @param addr address to send
      */
-    function _claim(uint256 amount, address addr) internal virtual override {
+    function __claim(uint256 amount, address addr) internal virtual override {
         if (address(this).balance < amount) {
             revert InsufficientAmount();
         }

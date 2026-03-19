@@ -188,7 +188,7 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
      * @param amount amount of eth
      * @param addr address to send
      */
-    function _claim(uint256 amount, address addr) internal override {
+    function __claim(uint256 amount, address addr) internal override {
         if (address(this).balance < amount) {
             revert InsufficientAmount();
         }

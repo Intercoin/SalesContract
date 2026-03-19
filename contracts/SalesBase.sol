@@ -44,7 +44,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint64 public _endTime;
 
     uint256 public totalAmountRaised;
-    
+
+    address public autoclaim;
+
     // true if token0 == uniswapPair.token0()
     bool internal token00; 
     address uniswapV2Pair;
@@ -64,6 +66,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     uint8 internal constant OPERATION_SETGROUP = 0x5;
     uint8 internal constant OPERATION_SET_TRUSTED_FORWARDER = 0x6;
     uint8 internal constant OPERATION_TRANSFER_OWNERSHIP = 0x7;
+    uint8 internal constant OPERATION_AUTOCLAIM = 0x8;
 
     IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
     bytes32 private constant _TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
@@ -258,6 +261,10 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         return _endTime;
     }
 
+    function setAutoclaim(address autoclaimRecipient) public onlyOwner {
+        autoclaim = autoclaimRecipient;
+    }
+
     function addCommission(uint256 fraction, address account) public onlyOwner {
         if (fraction == 0 || fraction > FRACTION || account == address(0)) {
             revert InvalidInput();
@@ -317,6 +324,10 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         //compensations
         _exchangeAdditional(recipient, totalAmount2Send);
+        //----------
+
+        //autoclaim (claimed all)
+        _makeAutoclaim();
         //----------
 
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
@@ -405,15 +416,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         if (amountAvailableToClaim < amount) {
             revert InsufficientAmount();
         }
-        totalIncomeAlreadyClaimed += amount;
-
-        _claim(amount, addr);
-        emit Claimed(amount, addr);
-        _accountForOperation(
-            OPERATION_CLAIM << OPERATION_SHIFT_BITS,
-            uint256(uint160(addr)),
-            amount
-        );
+        _claim(amount, addr, OPERATION_CLAIM);
     }
 
     /**
@@ -434,7 +437,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
         
         for (uint256 i = 0; i<commissionAddresses.length; i++) {
-            _claim(
+            __claim(
                 totalIncomeLeftToPaid * commissionFractions[i] / FRACTION, 
                 commissionAddresses[i]
             );
@@ -463,16 +466,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
      * claim all eth to owner(sender)
      */
     function claimAll() public onlyOwner {
-        uint256 amount = availableToClaim();
-        totalIncomeAlreadyClaimed += amount;
-        _claim(amount, _msgSender());
-        emit Claimed(amount, _msgSender());
-
-        _accountForOperation(
-            OPERATION_CLAIM_ALL << OPERATION_SHIFT_BITS,
-            uint256(uint160(_msgSender())),
-            amount
-        );
+        _claim(availableToClaim(), _msgSender(), OPERATION_CLAIM_ALL);
     }
 
     /**
@@ -766,6 +760,18 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     function availableToClaim() internal view returns(uint256) {
         return (totalIncome - totalIncome*holdTotalFraction/FRACTION) - totalIncomeAlreadyClaimed;
     }
+
+    function _claim(uint256 amount, address addr, uint8 operation_constant) internal {
+        totalIncomeAlreadyClaimed += amount;
+        __claim(amount, addr);
+        emit Claimed(amount, addr);
+
+        _accountForOperation(
+            operation_constant << OPERATION_SHIFT_BITS,
+            uint256(uint160(_msgSender())),
+            amount
+        );
+    }
     
     function _msgSender(
     ) 
@@ -792,6 +798,12 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
             }
         }
     }
+    function _makeAutoclaim() internal {
+    if (autoclaim != address(0)) {
+        _claim(availableToClaim(), autoclaim, OPERATION_AUTOCLAIM);
+    }
+}
+
     /**
      * calculate token's amount
      * @param inputAmount amount in eth that should be converted in tokenAmount
@@ -814,33 +826,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
      * @param amount amount of eth
      * @param addr address to send
      */
-    function _claim(uint256 amount, address addr) internal virtual;
-    // function _claim(uint256 amount, address addr) internal {
-        
-    //     require(address(this).balance >= amount, "Amount exceeds allowed balance");
-    //     require(addr != address(0), "address can not be empty");
-        
-    //     address payable addr1 = payable(addr); // correct since Solidity >= 0.6.0
-    //     bool success = addr1.send(amount);
-    //     require(success == true, "Transfer ether was failed"); 
-    // }
+    function __claim(uint256 amount, address addr) internal virtual;
     
-    /**
-     * @param amount amount of tokens
-     * @param addr address to send
-     */
-    // function _sendTokens(uint256 amount, address addr) internal {
-        
-    //     require(amount>0, "Amount can not be zero");
-    //     require(addr != address(0), "address can not be empty");
-        
-    //     uint256 tokenBalance = IERC20Upgradeable(sellingToken).balanceOf(address(this));
-    //     require(tokenBalance >= amount, "Amount exceeds allowed balance");
-        
-    //     bool success = IERC20Upgradeable(sellingToken).transfer(addr, amount);
-    //     require(success == true, "Transfer tokens were failed"); 
-    // }
-
     /**
      * @param amount amount of tokens
      * @param addr address to send

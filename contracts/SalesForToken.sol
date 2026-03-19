@@ -178,7 +178,7 @@ contract SalesForToken is SalesBaseWithCompensation, ISalesForToken {
      * @param amount amount of eth
      * @param addr address to send
      */
-    function _claim(uint256 amount, address addr) internal override {
+    function __claim(uint256 amount, address addr) internal override {
         if (IERC20Upgradeable(payToken).balanceOf(address(this)) < amount) {
             revert InsufficientAmount();
         }
