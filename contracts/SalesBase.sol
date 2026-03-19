@@ -45,6 +45,10 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
     uint256 public totalAmountRaised;
 
+    /// minimum value possible to buy. if non zero
+    uint256 public minimum;
+
+    /// address to autoclaim. if non zero
     address public autoclaim;
 
     // true if token0 == uniswapPair.token0()
@@ -125,6 +129,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error ExchangeTimeIsOver();
     error ExchangeTimeShouldBePassed();
     error CantCalculateAmountOfTokens();
+    error MinTokenPurchaseNotMet(uint256 min, uint256 provided);
 
     modifier validateWithdraw() {
         _checkOwner();
@@ -264,6 +269,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     function setAutoclaim(address autoclaimRecipient) public onlyOwner {
         autoclaim = autoclaimRecipient;
     }
+    function setMinimum(uint256 newMinimum) public onlyOwner {
+        minimum = newMinimum;
+    }
 
     function addCommission(uint256 fraction, address account) public onlyOwner {
         if (fraction == 0 || fraction > FRACTION || account == address(0)) {
@@ -297,6 +305,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         if (totalAmount2Send == 0) {
             revert CantCalculateAmountOfTokens();
+        }
+        if ((minimum != 0) && (totalAmount2Send < minimum)) {
+            revert MinTokenPurchaseNotMet(minimum, totalAmount2Send);
         }
 
         totalIncome += settlementAmount;
