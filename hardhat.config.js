@@ -50,6 +50,51 @@ module.exports = {
           privateKey: process.env.private_key_sales,
           balance: '10000000000000000000000'
         },
+
+        // hardhat built-in list
+        // used just for making tests!!!!!!!!!!!!!!
+        {
+          privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x59c6995e998f97a5a0044966f094538e6d0b13c9fba5b6d6f74a09a5e4d8b6f8',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x5de4111afa1a4b94908f83103e07c7c8b1fcb64f2d1c4b0c89e5d9f39af51ed4',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x7c8521182946d0e161f0c7b1f6d7f7e0e92ce40938e425c205b5b61896f8a3e7',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x47e179ec1974887d0d5e5f0d5f5f5c6c6c83e1b4d29c3168c81551979c7c57cc',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x8b3a350cf5c34c9194ca3a545d8b8b8d6ebf0f8b6b2b0f3d6d83d31f4d3e0b91',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x9fe46736679d2d9a65f0992f2272de9f3c7fa6e0b9a3e6c8e6c9f4f8d7b7a9d1',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce036f7a7a6b0f3c9b5c7a2',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0x6c875dfb4f3b8dcd9a316bed112fb0a0e0eaa90bf34e66b4a79e2d0a73e7ac24',
+          balance: '10000000000000000000000'
+        },
+        {
+          privateKey: '0xf214f2b2cd5c8a4e8e1e8b4d29b1b7a4d5c7e3a9d4b5f6a7c8d9e0f1a2b3c4d5',
+          balance: '10000000000000000000000'
+        }
+
+        //--------------------------
       ],
       allowUnlimitedContractSize: false,
       //gasPrice: "auto",
@@ -67,6 +112,22 @@ module.exports = {
       
       
     },
+
+    // localhost: {
+    //   allowUnlimitedContractSize: true,
+    //   // accounts: [
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key},
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key_auxiliary},
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key_tradedTokenITR},
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key_tradedTokenQBIX},
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key_claim},
+    //   //   {balance: '10000000000000000000000', privateKey: process.env.private_key_tradedTokenKTA}
+    //   // ],
+    //   // //[bscURL]
+    //   chainId: 56, // 0x38
+    //   url: "http://127.0.0.1:8545/"
+
+    // },
     
     bsc: {
       url: bscURL,

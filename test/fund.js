@@ -60,6 +60,7 @@ describe("Sales", function () {
             accountEleven, 
             trustedForwarder
         ] = await ethers.getSigners();
+        
         // predefined init params
         let tmp;
         tmp = await ethers.provider.send("eth_blockNumber",[]);
