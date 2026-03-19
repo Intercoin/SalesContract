@@ -138,14 +138,13 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
      * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable nonReentrant() {
-        // potentionally usd amount if user made swap from weth to usdc
         uint256 usdValue = getUSDFromETH(msg.value);
-        _exchange(usdValue);
+       _exchange(usdValue, msg.value);
 
-        _accountForOperation(
+       _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
             uint256(uint160(_msgSender())),
-            usdValue
+            msg.value
         );
     }
 

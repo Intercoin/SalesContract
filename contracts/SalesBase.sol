@@ -267,8 +267,11 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         holdTotalFraction += fraction;
     }
-
-    function _exchange(uint256 inputAmount) internal virtual returns(uint256) {
+/*
+    uint256 inputAmount
+    uint256 pricingAmount, uint256 settlementAmount
+ */
+    function _exchange(uint256 pricingAmount, uint256 settlementAmount) internal virtual returns(uint256) {
         address sender = _msgSender();
 
         if (!whitelisted(sender)) { 
@@ -287,13 +290,13 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         uint256[2] memory tokenPrices;
         uint256[2] memory tokens2Send;
 
-        (totalAmount2Send, inputAmounts, tokenPrices, tokens2Send) = getTokenAmount(sender, inputAmount);
+        (totalAmount2Send, inputAmounts, tokenPrices, tokens2Send) = getTokenAmount(sender, pricingAmount);
 
         if (totalAmount2Send == 0) {
             revert CantCalculateAmountOfTokens();
         }
 
-        totalIncome += inputAmount;
+        totalIncome += settlementAmount;
         totalAmountRaised += totalAmount2Send;
 
         uint256 tokenBalance = IERC777Upgradeable(sellingToken).balanceOf(address(this));
@@ -306,7 +309,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
             revert TransferError();
         }
         
-        emit Exchange(sender, inputAmount, totalAmount2Send);
+        emit Exchange(sender, pricingAmount, totalAmount2Send);
 
         // bonus calculation
         // _addBonus(

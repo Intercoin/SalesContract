@@ -1007,6 +1007,91 @@ describe("Sales", function () {
             console.log("accountTwoBalanceBefore = ", accountTwoBalanceBefore);
             console.log("accountTwoBalanceActual = ", accountTwoBalanceActual);
         });
+
+        it('claimAll with (sales-with-stable-prices)', async () => {
+            const {
+                owner,
+                accountTwo,
+                trustedForwarder,
+                ERC20MintableInstance,
+                SalesWithStablePricesInstance
+            } = await loadFixture(deploySalesWithStablePricesInstance);
+
+            if (trustedForwardMode) {
+                await SalesWithStablePricesInstance.connect(owner).setTrustedForwarder(trustedForwarder.address);
+            }
+
+            const _args = getArguments();
+
+            //console.log(await SalesWithStablePricesInstance.getCustomTwoPrices());
+
+            await ERC20MintableInstance.connect(owner).mint(SalesWithStablePricesInstance.target, MILLION * MILLION * MILLION * ONE_ETH);
+            await SalesWithStablePricesInstance.connect(owner).whitelistAdd(accountTwo.address);
+
+            var accountTwoBalanceBefore = await ERC20MintableInstance.balanceOf(accountTwo.address);
+            var SalesWithStablePricesInstanceBalanceBefore = (await ethers.provider.getBalance(SalesWithStablePricesInstance.target));
+            // send ETH to Contract
+            await accountTwo.sendTransaction({
+                to: SalesWithStablePricesInstance.target, 
+                value: ethers.parseEther('1')
+            });
+
+            var ownerBalanceActual = await ethers.provider.getBalance(owner.address);
+            var SalesWithStablePricesInstanceBalanceActual = await ethers.provider.getBalance(SalesWithStablePricesInstance.target);
+            expect(SalesWithStablePricesInstanceBalanceActual).not.to.be.eq(0n);
+
+            const tx1 = await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
+            const rc1 = await tx1.wait(); 
+            var txFee1= rc1.cumulativeGasUsed * rc1.gasPrice;
+            if (trustedForwardMode) {
+                txFee1 = 0n; // owner didn't spent anything, trusted forwarder payed fee for tx
+            }
+
+            var ownerBalanceActualClaimAll = await ethers.provider.getBalance(owner.address);
+            const SalesWithStablePricesInstanceBalanceAfterClaimAll = await ethers.provider.getBalance(SalesWithStablePricesInstance.target);
+            expect(SalesWithStablePricesInstanceBalanceAfterClaimAll).to.be.eq(0n);
+            expect(ownerBalanceActualClaimAll-ownerBalanceActual).to.be.eq(SalesWithStablePricesInstanceBalanceActual-txFee1);
+            
+
+            // send ETH to Contract AGAIN more a little bit
+            await accountTwo.sendTransaction({
+                to: SalesWithStablePricesInstance.target, 
+                value: ethers.parseEther('2')
+            });
+
+            var SalesWithStablePricesInstanceBalanceActual2 = await ethers.provider.getBalance(SalesWithStablePricesInstance.target);
+            var ownerBalanceActual2 = await ethers.provider.getBalance(owner.address);
+            expect(SalesWithStablePricesInstanceBalanceActual2).not.to.be.eq(0n);
+            const tx2 = await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
+            const rc2 = await tx2.wait(); 
+            var txFee2= rc2.cumulativeGasUsed * rc2.gasPrice;
+            if (trustedForwardMode) {
+                txFee2 = 0n; // owner didn't spent anything, trusted forwarder payed fee for tx
+            }
+            //await mixedCall(SalesTokenInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy(uint256)', [amountTokenSendToContract], {custom:"WhitelistError"});
+            const SalesWithStablePricesInstanceBalanceAfterClaimAll2 = await ethers.provider.getBalance(SalesWithStablePricesInstance.target);
+            var ownerBalanceActualClaimAll2 = await ethers.provider.getBalance(owner.address);
+            
+            expect(SalesWithStablePricesInstanceBalanceAfterClaimAll2).to.be.eq(0n);
+            expect(ownerBalanceActualClaimAll2-ownerBalanceActual2).to.be.eq(SalesWithStablePricesInstanceBalanceActual2-txFee2);
+
+/*
+const rc1 = await tx1.wait(); 
+                
+                var txFee= rc1.cumulativeGasUsed * rc1.gasPrice;
+
+                if (trustedForwardMode) {
+                    txFee = 0n; // owner didn't spent anything, trusted forwarder payed fee for tx
+                }
+
+                var accountOwnerBalanceAfter = (await ethers.provider.getBalance(owner.address));
+                
+
+                const ExpectedOwnerETH = totalETHToSend - (totalETHToSend * (1000n+2000n+1000n) / (FRACTION));
+                expect(accountOwnerBalanceAfter - accountOwnerBalanceBefore).to.be.eq(ExpectedOwnerETH - txFee);
+
+ */
+        });
     
         it('test tokenPrice', async () => {
             const {
@@ -1625,6 +1710,7 @@ describe("Sales", function () {
 
                 const ExpectedOwnerETH = totalETHToSend - (totalETHToSend * (1000n+2000n+1000n) / (FRACTION));
                 expect(accountOwnerBalanceAfter - accountOwnerBalanceBefore).to.be.eq(ExpectedOwnerETH - txFee);
+
             });
         
             it('commissions', async () => {
