@@ -1077,7 +1077,7 @@ describe("Sales", function () {
 
         });
 
-        it('complex test "buy/buyFor/claimAll - setMinimum - claimAll" with (sales-with-stable-prices)', async () => {
+        xit('complex test "buy/buyFor/claimAll/setMinimum/autoclaim - setMinimum - claimAll" with (sales-with-stable-prices)', async () => {
             const {
                 owner,
                 accountTwo,
@@ -1158,7 +1158,30 @@ describe("Sales", function () {
 
             expect(accountTwoBalanceAfter3-accountTwoBalanceBefore3).to.be.eq(0n);
             expect(accountThreeBalanceAfter3).to.be.gt(accountThreeBalanceBefore3);
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
 
+            // autoclaim
+            var ownerBalanceClaimAllBefore4 = await ethers.provider.getBalance(owner.address);
+            var accountThreeBalanceClaimAllBefore4 = await ethers.provider.getBalance(accountThree.address);
+            
+            await SalesWithStablePricesInstance.connect(owner).setAutoclaim(accountThree.address);
+            await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), accountTwo, 'buy()', [{value: amountETHToSendMore + ONE_ETH}]);
+            const tx4 = await mixedCall(SalesWithStablePricesInstance, (trustedForwardMode ? trustedForwarder : trustedForwardMode), owner, 'claimAll', []);
+            const rc4 = await tx4.wait(); 
+            var txFee4= rc4.cumulativeGasUsed * rc4.gasPrice;
+            if (trustedForwardMode) {
+                txFee4 = 0n; // owner didn't spent anything, trusted forwarder payed fee for tx
+            }
+
+            var ownerBalanceClaimAllAfter4 = await ethers.provider.getBalance(owner.address);
+            var accountThreeBalanceClaimAllAfter4 = await ethers.provider.getBalance(accountThree.address);
+
+            console.log("ownerBalanceClaimAllBefore4 = ",ownerBalanceClaimAllBefore4);
+            console.log("ownerBalanceClaimAllAfter4  = ",ownerBalanceClaimAllAfter4);
+            console.log("accountThreeBalanceClaimAllBefore4 = ",accountThreeBalanceClaimAllBefore4);
+            console.log("accountThreeBalanceClaimAllAfter4  = ",accountThreeBalanceClaimAllAfter4);
+            expect(ownerBalanceClaimAllBefore4 - ownerBalanceClaimAllAfter4).to.be.eq(txFee4);
+            expect(accountThreeBalanceClaimAllAfter4).to.be.gt(accountThreeBalanceClaimAllBefore4);
 
         });
     
