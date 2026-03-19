@@ -63,14 +63,14 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     // Constants representing operations
     uint8 internal constant OPERATION_INITIALIZE = 0x0;
     uint8 internal constant OPERATION_BUY = 0x1;
-    uint8 internal constant OPERATION_WITHDRAW = 0x1;
-    uint8 internal constant OPERATION_WITHDRAW_ALL = 0x2;
-    uint8 internal constant OPERATION_CLAIM = 0x3;
-    uint8 internal constant OPERATION_CLAIM_ALL = 0x4;
-    uint8 internal constant OPERATION_SETGROUP = 0x5;
-    uint8 internal constant OPERATION_SET_TRUSTED_FORWARDER = 0x6;
-    uint8 internal constant OPERATION_TRANSFER_OWNERSHIP = 0x7;
-    uint8 internal constant OPERATION_AUTOCLAIM = 0x8;
+    uint8 internal constant OPERATION_WITHDRAW = 0x2;
+    uint8 internal constant OPERATION_WITHDRAW_ALL = 0x3;
+    uint8 internal constant OPERATION_CLAIM = 0x4;
+    uint8 internal constant OPERATION_CLAIM_ALL = 0x5;
+    uint8 internal constant OPERATION_SETGROUP = 0x6;
+    uint8 internal constant OPERATION_SET_TRUSTED_FORWARDER = 0x7;
+    uint8 internal constant OPERATION_TRANSFER_OWNERSHIP = 0x8;
+    uint8 internal constant OPERATION_AUTOCLAIM = 0x9;
 
     IERC1820RegistryUpgradeable internal constant _ERC1820_REGISTRY = IERC1820RegistryUpgradeable(0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24);
     bytes32 private constant _TOKENS_SENDER_INTERFACE_HASH = keccak256("ERC777TokensSender");
