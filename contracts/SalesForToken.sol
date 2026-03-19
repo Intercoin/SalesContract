@@ -161,7 +161,7 @@ contract SalesForToken is SalesBaseWithCompensation, ISalesForToken {
             revert TransferError();
         }
         
-        _exchange(amount, amount); 
+        _exchange(amount, amount, _msgSender()); 
 
         _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,

@@ -267,14 +267,10 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         holdTotalFraction += fraction;
     }
-/*
-    uint256 inputAmount
-    uint256 pricingAmount, uint256 settlementAmount
- */
-    function _exchange(uint256 pricingAmount, uint256 settlementAmount) internal virtual returns(uint256) {
-        address sender = _msgSender();
 
-        if (!whitelisted(sender)) { 
+    function _exchange(uint256 pricingAmount, uint256 settlementAmount, address recipient) internal virtual returns(uint256) {
+        
+        if (!whitelisted(recipient)) { 
             revert WhitelistError(); 
         }
 
@@ -290,7 +286,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         uint256[2] memory tokenPrices;
         uint256[2] memory tokens2Send;
 
-        (totalAmount2Send, inputAmounts, tokenPrices, tokens2Send) = getTokenAmount(sender, pricingAmount);
+        (totalAmount2Send, inputAmounts, tokenPrices, tokens2Send) = getTokenAmount(recipient, pricingAmount);
 
         if (totalAmount2Send == 0) {
             revert CantCalculateAmountOfTokens();
@@ -304,12 +300,12 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
             revert InsufficientAmount();
         }
 
-        bool success = ERC777Upgradeable(sellingToken).transfer(sender, totalAmount2Send);
+        bool success = ERC777Upgradeable(sellingToken).transfer(recipient, totalAmount2Send);
         if (!success) {
             revert TransferError();
         }
         
-        emit Exchange(sender, pricingAmount, totalAmount2Send);
+        emit Exchange(recipient, pricingAmount, totalAmount2Send);
 
         // bonus calculation
         // _addBonus(
@@ -320,25 +316,25 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         // );
 
         //compensations
-        _exchangeAdditional(sender, totalAmount2Send);
+        _exchangeAdditional(recipient, totalAmount2Send);
         //----------
 
         if (inputAmounts[1] != 0 && tokenPrices[1] != 0) {
-            if (!lockedPrice[sender].exists) {
-                lockedPrice[sender].exists = true;
+            if (!lockedPrice[recipient].exists) {
+                lockedPrice[recipient].exists = true;
 
-                lockedPrice[sender].price = tokenPrices[1];
+                lockedPrice[recipient].price = tokenPrices[1];
             }
-            lockedPrice[sender].boughtAmount += tokens2Send[1];
+            lockedPrice[recipient].boughtAmount += tokens2Send[1];
             
             // we can't exceed maximumLockedInAmount. we calculated it in getTokenAmount
         }
-        lockedPrice[sender].totalAmount += totalAmount2Send;
+        lockedPrice[recipient].totalAmount += totalAmount2Send;
 
         for(uint256 i = 0; i < inputAmounts.length;  i++) {
             if (inputAmounts[i] != 0 && tokenPrices[i] != 0) {
                 _addBonus(
-                    sender, 
+                    recipient, 
                     inputAmounts[i],
                     tokenPrices[i],
                     true

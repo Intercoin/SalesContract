@@ -138,8 +138,31 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
      * exchange eth to token via ratios ETH/<token>
      */
     receive() external payable nonReentrant() {
+        exchange(_msgSender());
+    }
+
+    /**
+     * exchange eth to token via ratios ETH/<token>
+     */
+    function buy() external payable nonReentrant() {
+       exchange(_msgSender());
+    }
+
+    /**
+     * exchange eth to token via ratios ETH/<token>
+     * @param recipient recipient address
+     */
+    function buyFor(address recipient) external payable nonReentrant() {
+       exchange(recipient);
+    }
+
+    function owner() public view override(ISalesWithStablePrices, SalesBase) returns (address) {
+        return super.owner();
+    }
+    
+    function exchange(address recipient) internal {
         uint256 usdValue = getUSDFromETH(msg.value);
-       _exchange(usdValue, msg.value);
+       _exchange(usdValue, msg.value, recipient);
 
        _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
@@ -148,10 +171,6 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
         );
     }
 
-    function owner() public view override(ISalesWithStablePrices, SalesBase) returns (address) {
-        return super.owner();
-    }
-    
     function getUSDFromETH(uint256 amount) internal view returns(uint256 convertedAmount) {
         
         //convertedAmount = 1e2*(getPrice().mul(amount)).decode144();
