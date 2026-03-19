@@ -45,7 +45,7 @@ abstract contract SalesBaseWithCompensation is SalesBase {
         _compensationEndTime = _compensationSettings.endTime;
     }
     
-    function compensation() public {
+    function compensation() public nonReentrant {
         
         if (_endTime > block.timestamp) {
             revert CompensationTimeShouldBePassed();

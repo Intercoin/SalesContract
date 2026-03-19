@@ -473,7 +473,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
 
         uint256 totalIncomeLeftToPaid = totalIncome - holdTotalAlreadyPayed;
-        holdTotalAlreadyPayed += totalIncome;
+        holdTotalAlreadyPayed += totalIncomeLeftToPaid;
 
         uint256 amount2send = (totalIncomeLeftToPaid*holdTotalFraction/FRACTION);
 
