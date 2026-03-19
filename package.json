@@ -4,16 +4,15 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "addPresale1":                    "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js",
-    "addPresale1:bsc":                "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network bsc",
-    "addPresale2:bsc":                "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network bsc",
-    "addPresale1:polygon":            "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network polygon",
-    "addPresale2:polygon":            "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network polygon",
-    "addPresale1:base":               "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network base",
-    "addPresale2:base":               "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network base",
+    "addPresale1": "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js",
+    "addPresale1:bsc": "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network bsc",
+    "addPresale2:bsc": "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network bsc",
+    "addPresale1:polygon": "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network polygon",
+    "addPresale2:polygon": "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network polygon",
+    "addPresale1:base": "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network base",
+    "addPresale2:base": "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network base",
     "addPresale1:optimisticEthereum": "set argPath=./helpers/presale1.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network optimisticEthereum",
     "addPresale2:optimisticEthereum": "set argPath=./helpers/presale2.js && set SalesFactoryAddress=0x08010100d9d250947417b9de5b6622fa1dcb64b8 && npx hardhat run ./scripts/produce.js --network optimisticEthereum",
-
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "files": [
@@ -34,9 +33,13 @@
   "homepage": "https://github.com/Intercoin/SalesContract#readme",
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.0.1",
+    "@nomicfoundation/hardhat-verify": "^2.1.3",
     "dotenv": "^16.4.5",
     "hardhat-contract-sizer": "^2.10.0",
     "solidity-coverage": "^0.8.12"
+  },
+  "overrides": {
+    "micro-eth-signer": "0.14.0"
   },
   "dependencies": {
     "@intercoin/community": "^1.2.0",
