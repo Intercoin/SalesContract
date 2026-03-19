@@ -137,7 +137,7 @@ contract SalesWithStablePrices is SalesBaseWithCompensation, ISalesWithStablePri
     /**
      * exchange eth to token via ratios ETH/<token>
      */
-    receive() external payable validGasPrice nonReentrant() {
+    receive() external payable nonReentrant() {
         // potentionally usd amount if user made swap from weth to usdc
         uint256 usdValue = getUSDFromETH(msg.value);
         _exchange(usdValue);

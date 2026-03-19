@@ -137,7 +137,7 @@ contract Sales is SalesBase, ISales {
     /**
      * exchange eth to token via ratios ETH/<token>
      */
-    receive() external payable virtual validGasPrice nonReentrant() {
+    receive() external payable virtual nonReentrant() {
        _exchange(msg.value);
 
        _accountForOperation(
@@ -150,7 +150,7 @@ contract Sales is SalesBase, ISales {
     /**
      * exchange eth to token via ratios ETH/<token>
      */
-    function buy() external payable validGasPrice nonReentrant() {
+    function buy() external payable nonReentrant() {
         
        _exchange(msg.value);
 

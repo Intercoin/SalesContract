@@ -48,8 +48,6 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     // true if token0 == uniswapPair.token0()
     bool internal token00; 
     address uniswapV2Pair;
-    
-    uint256 internal constant maxGasPrice = 1*10**18; 
 
     uint256 internal constant priceDenom = 100000000;//1*10**8;
 
@@ -121,18 +119,9 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error GroupNameInvalid();
     error InsufficientAmount();
     error TransferError();
-    error MaxGasPriceExceeded();
     error ExchangeTimeIsOver();
     error ExchangeTimeShouldBePassed();
     error CantCalculateAmountOfTokens();
-
-    modifier validGasPrice() {
-        //require(tx.gasprice <= maxGasPrice, "Transaction gas price cannot exceed maximum gas price.");
-        if (tx.gasprice > maxGasPrice) {
-            revert MaxGasPriceExceeded();
-        }
-        _;
-    } 
 
     modifier validateWithdraw() {
         _checkOwner();

@@ -14,6 +14,7 @@ require("@hardhat-docgen/core")
 //require("./docgen-custom-markdown")
 
 */
+require('hardhat-contract-sizer');
 require("@nomicfoundation/hardhat-toolbox");
 
 //----------------------------------------------------------------
