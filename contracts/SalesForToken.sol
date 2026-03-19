@@ -154,18 +154,31 @@ contract SalesForToken is SalesBaseWithCompensation, ISalesForToken {
         payToken = _payToken;
     }
     
-    function buy(uint256 amount) public {
-        
-        bool success = IERC20Upgradeable(payToken).transferFrom(_msgSender(), address(this), amount); 
-        if (!success) {
-            revert TransferError();
-        }
-        
-        _exchange(amount, amount, _msgSender()); 
+    function buyAmount(uint256 amount) external nonReentrant {
+        _buyAmount(_msgSender(), amount);
+    }
+
+    function buyAmountFor(address recipient, uint256 amount) external nonReentrant {
+        _buyAmount(recipient, amount);
+    }
+
+    function _buyAmount(address recipient, uint256 amount) internal {
+        if (recipient == address(0)) revert AddressInvalid();
+        if (amount == 0) revert InvalidInput();
+
+        bool success = IERC20Upgradeable(payToken).transferFrom(
+            _msgSender(),
+            address(this),
+            amount
+        );
+
+        if (!success) revert TransferError();
+
+        _exchange(amount, amount, recipient);
 
         _accountForOperation(
             OPERATION_BUY << OPERATION_SHIFT_BITS,
-            uint256(uint160(_msgSender())),
+            uint256(uint160(recipient)),
             amount
         );
     }

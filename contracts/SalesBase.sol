@@ -48,8 +48,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     /// minimum value possible to buy. if non zero
     uint256 public minimum;
 
-    /// address to autoclaim. if non zero
-    address public autoclaim;
+    address public beneficiary;
+    bool public autoclaim;
 
     // true if token0 == uniswapPair.token0()
     bool internal token00; 
@@ -130,6 +130,8 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
     error ExchangeTimeShouldBePassed();
     error CantCalculateAmountOfTokens();
     error MinTokenPurchaseNotMet(uint256 min, uint256 provided);
+    error NotBeneficiary();
+    error InvalidBeneficiary();
 
     modifier validateWithdraw() {
         _checkOwner();
@@ -142,6 +144,11 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
 
         // (withdrawOption == EnumWithdraw.anytime)
 
+        _;
+    }
+
+    modifier onlyBeneficiary() {
+        if (_msgSender() != beneficiary) revert NotBeneficiary();
         _;
     }
 
@@ -266,8 +273,21 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         return _endTime;
     }
 
-    function setAutoclaim(address autoclaimRecipient) public onlyOwner {
-        autoclaim = autoclaimRecipient;
+   function setBeneficiary(address _beneficiary, bool _autoclaim) public {
+        if (beneficiary == address(0)) {
+            _checkOwner(); // bootstrap
+        } else {
+            if (_msgSender() != beneficiary) revert NotBeneficiary();
+        }
+
+        if (_beneficiary != address(0)) {
+            if (_beneficiary.code.length > 0 && !_autoclaim) {
+                revert InvalidBeneficiary();
+            }
+        }
+
+        beneficiary = _beneficiary;
+        autoclaim = _autoclaim;
     }
     function setMinimum(uint256 newMinimum) public onlyOwner {
         minimum = newMinimum;
@@ -422,12 +442,26 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
      * @param amount amount of eth
      * @param addr address to send
      */
-    function claim(uint256 amount, address addr) public onlyOwner {
+    function claim(uint256 amount, address addr) public onlyBeneficiary {
         uint256 amountAvailableToClaim = availableToClaim();
         if (amountAvailableToClaim < amount) {
             revert InsufficientAmount();
         }
+
         _claim(amount, addr, OPERATION_CLAIM);
+    }
+
+    function claimAllToBeneficiary() public {
+        if (_msgSender() != beneficiary && _msgSender() != owner()) {
+            revert NotBeneficiary();
+        }
+
+        if (beneficiary == address(0)) revert InvalidBeneficiary();
+
+        uint256 amount = availableToClaim();
+        if (amount == 0) return;
+
+        _claim(amount, beneficiary, OPERATION_CLAIM_ALL);
     }
 
     /**
@@ -682,7 +716,7 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
                     } else {
                         tokens2Send[1] = howMuchUselWillBuyByLockedPrice;
                         inputAmounts[1] = inputAmount;
-                        tokenPrices[1] = leftByLockedPrice;
+                        tokenPrices[1] = currentLockedPrice;
 
                         tokens2Send[0] = 0;
                         inputAmounts[0] = 0;
@@ -810,10 +844,14 @@ abstract contract SalesBase is OwnableUpgradeable, CostManagerHelperERC2771Suppo
         }
     }
     function _makeAutoclaim() internal {
-    if (autoclaim != address(0)) {
-        _claim(availableToClaim(), autoclaim, OPERATION_AUTOCLAIM);
+        if (!autoclaim) return;
+        if (beneficiary == address(0)) return; // safer than revert
+
+        uint256 amount = availableToClaim();
+        if (amount == 0) return;
+
+        _claim(amount, beneficiary, OPERATION_AUTOCLAIM);
     }
-}
 
     /**
      * calculate token's amount
